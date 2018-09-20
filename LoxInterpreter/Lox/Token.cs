@@ -6,16 +6,22 @@ namespace Lox
 {
     public class Token
     {
-        public string Value { get; private set; }
+        public readonly TokenType Type;
+        public readonly String Lexeme;
+        public readonly Object Literal;
+        public readonly int Line;
 
-        public Token(string value)
+        public Token(TokenType type, String lexeme, Object literal, int line)
         {
-            this.Value = value;
+            this.Type = type;
+            this.Lexeme = lexeme;
+            this.Literal = literal;
+            this.Line = line;
         }
 
-        public override string ToString()
+        public String toString()
         {
-            return this.Value;
+            return this.Type + " " + this.Lexeme + " " + this.Literal;
         }
     }
 }
