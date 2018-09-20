@@ -52,10 +52,52 @@ namespace Lox
                 case ';': this.AddToken(TokenType.SEMICOLON); break;
                 case '*': this.AddToken(TokenType.STAR); break;
 
+                case '!': this.AddToken(this.Match('=') ? TokenType.BANG_EQUAL : TokenType.BANG); break;
+                case '=': this.AddToken(this.Match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL); break;
+                case '<': this.AddToken(this.Match('=') ? TokenType.LESS_EQUAL : TokenType.LESS); break;
+                case '>': this.AddToken(this.Match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER); break;
+
+                case '/':
+                    if (this.Match('/'))
+                    {
+                        // A comment goes until the end of the line.                
+                        while (this.Peek() != '\n' && !this.IsAtEnd()) this.Advance();
+                    }
+                    else
+                    {
+                        this.AddToken(TokenType.SLASH);
+                    }
+                    break;
+
+                case ' ':
+                case '\r':
+                case '\t':
+                    // Ignore whitespace.                      
+                    break;
+
+                case '\n':
+                    this._line++;
+                    break;
+
                 default:
-                    Lox.error(line, "Unexpected character.");
+                    Program.Error(this._line, "Unexpected character.");
                     break;
             }
+        }
+
+        private char Peek()
+        {
+            if (this.IsAtEnd()) return '\0';
+            return this._source[this._current];
+        }
+
+        private bool Match(char expected)
+        {
+            if (this.IsAtEnd()) return false;
+            if (this._source[this._current] != expected) return false;
+
+            this._current++;
+            return true;
         }
 
         private char Advance()
@@ -71,7 +113,8 @@ namespace Lox
 
         private void AddToken(TokenType type, Object literal)
         {
-            String text = this._source.Substring(this._start, this._current);
+            var endIndex = this._start + this._current;
+            String text = this._source.Substring(this._start, endIndex);
             this._tokens.Add(new Token(type, text, literal, this._line));
         }
     }

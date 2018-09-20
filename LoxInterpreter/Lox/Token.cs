@@ -23,5 +23,20 @@ namespace Lox
         {
             return this.Type + " " + this.Lexeme + " " + this.Literal;
         }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as Token;
+
+            if (other == null)
+            {
+                return false;
+            }
+
+            return this.Type == other.Type
+                && this.Lexeme == other.Lexeme
+                && this.Literal == other.Literal
+                && this.Line == other.Line;
+        }
     }
 }
