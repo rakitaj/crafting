@@ -33,7 +33,8 @@ namespace LoxTests
             // Load the file
             var fileData = File.ReadAllText(_filePath);
 
-            return fileData;
+            //return fileData;
+            throw new NotImplementedException();
         }
     }
 }

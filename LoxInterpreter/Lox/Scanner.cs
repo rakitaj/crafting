@@ -113,8 +113,8 @@ namespace Lox
 
         private void AddToken(TokenType type, Object literal)
         {
-            var endIndex = this._start + this._current;
-            String text = this._source.Substring(this._start, endIndex);
+            var length = this._current - this._start;
+            String text = this._source.Substring(this._start, length);
             this._tokens.Add(new Token(type, text, literal, this._line));
         }
     }

@@ -1,6 +1,6 @@
 ﻿[*.cs]
 indent_size = 4
-trim_trailing_whitespace = true
+trim_trailing_whitespace = true:warning
 
 dotnet_style_qualification_for_field = true:warning
 dotnet_style_qualification_for_property = true:warning
