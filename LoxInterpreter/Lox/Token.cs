@@ -19,9 +19,17 @@ namespace Lox
             this.Line = line;
         }
 
-        public String toString()
+        public override int GetHashCode()
         {
-            return this.Type + " " + this.Lexeme + " " + this.Literal;
+            return this.Line.GetHashCode()
+                ^ this.Type.GetHashCode()
+                ^ this.Lexeme.GetHashCode()
+                ^ this.Literal.GetHashCode();
+        }
+
+        public override String ToString()
+        {
+            return this.Line + " " + this.Type + " " + this.Lexeme + " " + this.Literal;
         }
 
         public override bool Equals(object obj)

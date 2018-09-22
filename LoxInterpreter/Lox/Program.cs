@@ -29,6 +29,10 @@ namespace Lox
         {
             byte[] bytes = File.ReadAllBytes(Path.GetFullPath(path));
             var source = System.Text.Encoding.Default.GetString(bytes);
+
+            // Need to strip non visible whitespace character 65279 from the string[0] position. 
+            source = source.Trim(new char[] { '\uFEFF', '\u200B' });
+
             Run(source);
 
             if (HadError)

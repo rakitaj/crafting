@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="SourceCode\basic01.txt" />
+    <None Remove="SourceCode\basic01.lox" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="SourceCode\basic01.txt">
+    <Content Include="SourceCode\basic01.lox">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

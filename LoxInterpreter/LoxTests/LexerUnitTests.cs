@@ -1,0 +1,130 @@
+using Lox;
+using System;
+using System.Collections.Generic;
+using Xunit;
+
+namespace LoxTests
+{
+    public class LexerUnitTests
+    {
+        public Token EndOfFile(int line)
+        {
+            return new Token(TokenType.EOF, "", null, line);
+        }
+
+        [Fact]
+        public void Test_Scanner_with_single_character()
+        {
+            var scanner = new Scanner("!");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token> {
+                new Token(TokenType.BANG, "!", null, 1),
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+        }
+
+        [Fact]
+        public void Test_Scanner_with_two_single_char_tokens()
+        {
+            var scanner = new Scanner("!+");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token>
+            {
+                new Token(TokenType.BANG, "!", null, 1),
+                new Token(TokenType.PLUS, "+", null, 1),
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+        }
+
+        [Fact]
+        public void Test_Scanner_with_multiple_single_char_tokens()
+        {
+            var scanner = new Scanner("+-*<>");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token>
+            {
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.MINUS, "-", null, 1),
+                new Token(TokenType.STAR, "*", null, 1),
+                new Token(TokenType.LESS, "<", null, 1),
+                new Token(TokenType.GREATER, ">", null, 1),
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+        }
+
+        [Fact]
+        public void Test_Scanner_with_one_double_char_token()
+        {
+            var scanner = new Scanner("!=");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token> {
+                new Token(TokenType.BANG_EQUAL, "!=", null, 1),
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+        }
+
+        [Fact]
+        public void Test_scanner_many_tokens_one_line()
+        {
+            var scanner = new Scanner("!*+-/=<> <= == // operators");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token> {
+                new Token(TokenType.BANG, "!", null, 1),
+                new Token(TokenType.STAR, "*", null, 1),
+                new Token(TokenType.PLUS, "+", null, 1),
+                new Token(TokenType.MINUS, "-", null, 1),
+                new Token(TokenType.SLASH, "/", null, 1),
+                new Token(TokenType.EQUAL, "=", null, 1),
+                new Token(TokenType.LESS, "<", null, 1),
+                new Token(TokenType.GREATER, ">", null, 1),
+                new Token(TokenType.LESS_EQUAL, "<=", null, 1),
+                new Token(TokenType.EQUAL_EQUAL, "==", null, 1),
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+        }
+
+        [Fact]
+        public void Test_scanner_with_comment_and_whitespace()
+        {
+            var scanner = new Scanner("// this is a comment");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token>
+            {
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+        }
+
+        [Fact]
+        public void Test_scanner_with_two_lines()
+        {
+            var scanner = new Scanner("// this is a comment\n(( )){ } // grouping stuff");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token>
+            {
+                new Token(TokenType.LEFT_PAREN, "(", null, 2),
+                new Token(TokenType.LEFT_PAREN, "(", null, 2),
+                new Token(TokenType.RIGHT_PAREN, ")", null, 2),
+                new Token(TokenType.RIGHT_PAREN, ")", null, 2),
+                new Token(TokenType.LEFT_BRACE, "{", null, 2),
+                new Token(TokenType.RIGHT_BRACE, "}", null, 2),
+                this.EndOfFile(2)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+            Assert.False(Program.HadError);
+        }
+
+    }
+}
