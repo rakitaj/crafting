@@ -7,7 +7,7 @@ namespace Lox
 {
     public class Scanner
     {
-        private readonly String _source;                                            
+        private readonly String _source;
         private readonly List<Token> _tokens = new List<Token>();
         private int _start = 0;
         private int _current = 0;
@@ -79,10 +79,26 @@ namespace Lox
                     this._line++;
                     break;
 
+                case '"':
+                    this.StringToken();
+                    break;
+
                 default:
-                    Program.Error(this._line, "Unexpected character.");
+                    if (IsDigit(c))
+                    {
+                        //this.Number();
+                    }
+                    else
+                    {
+                        Program.Error(this._line, "Unexpected character.");
+                    }
                     break;
             }
+        }
+
+        public static bool IsDigit(char c)
+        {
+            return c >= '0' && c <= '9';
         }
 
         private char Peek()
@@ -116,6 +132,26 @@ namespace Lox
             var length = this._current - this._start;
             String text = this._source.Substring(this._start, length);
             this._tokens.Add(new Token(type, text, literal, this._line));
+        }
+
+        private void StringToken()
+        {
+            while (this.Peek() != '"' && !this.IsAtEnd())
+            {
+                if (this.Peek() == '\n') this._line++;
+                this.Advance();
+            }
+
+            if (this.IsAtEnd())
+            {
+                Program.Error(this._line, "Unterminated string.");
+                return;
+            }
+
+            this.Advance();
+            int length = (this._current - 1) - (this._start + 1);
+            String value = this._source.Substring(this._start + 1, length);
+            this.AddToken(TokenType.STRING, value);
         }
     }
 }

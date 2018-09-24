@@ -126,5 +126,23 @@ namespace LoxTests
             Assert.False(Program.HadError);
         }
 
+        [Theory]
+        [InlineData('0', true)]
+        [InlineData('1', true)]
+        [InlineData('2', true)]
+        [InlineData('3', true)]
+        [InlineData('4', true)]
+        [InlineData('5', true)]
+        [InlineData('6', true)]
+        [InlineData('7', true)]
+        [InlineData('8', true)]
+        [InlineData('9', true)]
+        [InlineData('a', false)]
+        [InlineData('A', false)]
+        public void Test_IsDigit(char c, bool expectedResult)
+        {
+            var result = Scanner.IsDigit(c);
+            Assert.Equal(expectedResult, result);
+        }
     }
 }
