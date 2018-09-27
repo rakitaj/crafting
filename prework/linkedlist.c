@@ -21,5 +21,5 @@ LinkedList_t* LinkedList_new() {
 }
 
 void LinkedList_add_to_front(LinkedList_t* linked_list) {
-    // do I need to dereference head and tail?
+    
 }

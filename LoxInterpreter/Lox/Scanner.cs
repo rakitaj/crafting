@@ -86,7 +86,7 @@ namespace Lox
                 default:
                     if (IsDigit(c))
                     {
-                        //this.Number();
+                        this.Number();
                     }
                     else
                     {
@@ -101,10 +101,32 @@ namespace Lox
             return c >= '0' && c <= '9';
         }
 
+        private void Number()
+        {
+            while (IsDigit(this.Peek())) this.Advance();
+
+            // Look for a fractional part.
+            if (this.Peek() == '.' && IsDigit(this.PeekNext()))
+            {
+                // Consume the '.'
+                this.Advance();
+
+                while (IsDigit(this.Peek())) this.Advance();
+            }
+
+            this.AddToken(TokenType.NUMBER, double.Parse(this._source.Substring2(this._start, this._current)));
+        }
+
         private char Peek()
         {
             if (this.IsAtEnd()) return '\0';
             return this._source[this._current];
+        }
+
+        private char PeekNext()
+        {
+            if (this._current + 1 >= this._source.Length) return '\0';
+            return this._source[this._current + 1];
         }
 
         private bool Match(char expected)
