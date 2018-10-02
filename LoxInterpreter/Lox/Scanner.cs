@@ -87,6 +87,9 @@ namespace Lox
                     if (IsDigit(c))
                     {
                         this.Number();
+                    } else if (Scanner.IsAlpha(c))
+                    {
+                        this.Identifier();
                     }
                     else
                     {
@@ -94,6 +97,28 @@ namespace Lox
                     }
                     break;
             }
+        }
+
+        private void Identifier()
+        {
+            while (IsAlphaNumeric(this.Peek()))
+            {
+                this.Advance();
+            }
+
+            this.AddToken(TokenType.IDENTIFIER);
+        }
+
+        public static bool IsAlpha(char c)
+        {
+            return (c >= 'a' && c <= 'z') ||
+                   (c >= 'A' && c <= 'Z') ||
+                    c == '_';
+        }
+
+        public static bool IsAlphaNumeric(char c)
+        {
+            return IsAlpha(c) || IsDigit(c);
         }
 
         public static bool IsDigit(char c)

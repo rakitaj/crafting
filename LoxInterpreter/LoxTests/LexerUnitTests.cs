@@ -144,5 +144,42 @@ namespace LoxTests
             var result = Scanner.IsDigit(c);
             Assert.Equal(expectedResult, result);
         }
+
+        [Theory]
+        [InlineData('_', true)]
+        [InlineData('a', true)]
+        [InlineData('b', true)]
+        [InlineData('c', true)]
+        [InlineData('X', true)]
+        [InlineData('Y', true)]
+        [InlineData('Z', true)]
+        [InlineData('0', false)]
+        [InlineData('1', false)]
+        [InlineData('5', false)]
+        [InlineData('9', false)]
+        [InlineData('!', false)]
+        [InlineData('/', false)]
+        [InlineData('.', false)]
+        [InlineData('-', false)]
+        public void Test_IsAlpha_Or_Underscore(char c, bool expectedResult)
+        {
+            var result = Scanner.IsAlpha(c);
+            Assert.Equal(expectedResult, result);
+        }
+
+        [Fact]
+        public void Test_scanner_with_number()
+        {
+            var scanner = new Scanner("123.456");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token>
+            {
+                new Token(TokenType.NUMBER, "123.456", 123.456, 1),
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+            Assert.False(Program.HadError);
+        }
     }
 }
