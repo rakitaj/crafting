@@ -13,6 +13,26 @@ namespace Lox
         private int _current = 0;
         private int _line = 1;
 
+        private static readonly Dictionary<String, TokenType> Keywords = new Dictionary<string, TokenType>()
+        {
+            ["and"] = TokenType.AND,
+            ["class"] = TokenType.CLASS,
+            ["else"] = TokenType.ELSE,
+            ["false"] = TokenType.FALSE,
+            ["for"] = TokenType.FOR,
+            ["fun"] = TokenType.FUN,
+            ["if"] = TokenType.IF,
+            ["nil"] = TokenType.NIL,
+            ["or"] = TokenType.OR,
+            ["print"] = TokenType.PRINT,
+            ["return"] = TokenType.RETURN,
+            ["super"] = TokenType.SUPER,
+            ["this"] = TokenType.THIS,
+            ["true"] = TokenType.TRUE,
+            ["var"] = TokenType.VAR,
+            ["while"] = TokenType.WHILE
+        };
+
         public Scanner(String source)
         {
             this._source = source;
@@ -87,7 +107,8 @@ namespace Lox
                     if (IsDigit(c))
                     {
                         this.Number();
-                    } else if (Scanner.IsAlpha(c))
+                    }
+                    else if (Scanner.IsAlpha(c))
                     {
                         this.Identifier();
                     }
@@ -106,7 +127,14 @@ namespace Lox
                 this.Advance();
             }
 
-            this.AddToken(TokenType.IDENTIFIER);
+            String text = this._source.Substring2(this._start, this._current);
+
+            bool result = Keywords.TryGetValue(text, out TokenType type);
+            if (result == false)
+            {
+                type = TokenType.IDENTIFIER;
+            }
+            this.AddToken(type);
         }
 
         public static bool IsAlpha(char c)
