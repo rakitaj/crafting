@@ -41,10 +41,26 @@ namespace Lox
                 return false;
             }
 
+
+            bool literalEqual = false;
+            if (other.Type == TokenType.NUMBER)
+            {
+                literalEqual = (double)this.Literal == (double)other.Literal;
+            }
+            else if (other.Type == TokenType.STRING)
+            {
+                literalEqual = (string)this.Literal == (string)other.Literal;
+            }
+            else
+            {
+                literalEqual = this.Literal == other.Literal;
+            }
+
             return this.Type == other.Type
                 && this.Lexeme == other.Lexeme
-                && this.Literal == other.Literal
+                && literalEqual
                 && this.Line == other.Line;
         }
+
     }
 }

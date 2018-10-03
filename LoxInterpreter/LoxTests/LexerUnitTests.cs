@@ -181,5 +181,21 @@ namespace LoxTests
             Assert.Equal(expectedTokens, tokens);
             Assert.False(Program.HadError);
         }
+
+        [Fact]
+        public void Test_Scanner_with_string()
+        {
+            var scanner = new Scanner("\"hello\"");
+            var tokens = scanner.ScanTokens();
+            var expectedTokens = new List<Token>
+            {
+                new Token(TokenType.STRING, "\"hello\"", "hello", 1),
+                this.EndOfFile(1)
+            };
+
+            Assert.Equal(expectedTokens, tokens);
+            Assert.False(Program.HadError);
+        }
+
     }
 }
