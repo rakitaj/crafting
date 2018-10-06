@@ -3,9 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lox", "Lox\Lox.csproj", "{62E4AC99-80FD-4B44-AE3C-8E87FB64C521}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lox", "Lox\Lox.csproj", "{62E4AC99-80FD-4B44-AE3C-8E87FB64C521}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoxTests", "LoxTests\LoxTests.csproj", "{465FAE24-D8C9-44E5-A25B-A22B2F792965}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoxTests", "LoxTests\LoxTests.csproj", "{465FAE24-D8C9-44E5-A25B-A22B2F792965}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notes", "Notes", "{3573DBB1-07D9-4FA3-B54E-F05064253BC5}"
+	ProjectSection(SolutionItems) = preProject
+		Notes\Scanning.md = Notes\Scanning.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
