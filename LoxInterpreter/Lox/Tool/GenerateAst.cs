@@ -7,14 +7,13 @@ namespace Lox.Tool
 {
     public class GenerateAst
     {
-        public static void Run(string[] args)
+        public static void Run(string outputDir)
         {
-            if (args.Length != 1)
+            if (outputDir == null)
             {
                 Console.WriteLine("Usage: generate_ast <output directory>");
                 Environment.Exit(1);
             }
-            var outputDir = args[0];
             DefineAst(outputDir, "Expr", new List<string> {
               "Binary   : Expr left, Token operator, Expr right",
               "Grouping : Expr expression",

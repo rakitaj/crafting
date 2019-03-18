@@ -10,6 +10,11 @@ namespace Lox
 
         public static void Main(string[] args)
         {
+            if (args.Length == 2 && args[0] == "generate_ast")
+            {
+                Tool.GenerateAst.Run(args[1]);
+                Environment.Exit(0);
+            }
             if (args.Length > 1)
             {
                 Console.WriteLine("Usage CSharpLox [script]");
