@@ -33,6 +33,7 @@ namespace Lox.Tool
                 writer.WriteLine("namespace Lox");
                 writer.WriteLine("{");
                 writer.WriteLine("public abstract class " + baseName + " {");
+                writer.WriteLine("  public abstract R Accept<R>(IVisitor<R> visitor);");
                 writer.WriteLine("}");
 
                 DefineVisitor(writer, baseName, types);
@@ -79,7 +80,7 @@ namespace Lox.Tool
 
             // Visitor pattern
             writer.WriteLine();
-            writer.WriteLine("  public R Accept<R>(IVisitor<R> visitor) {");
+            writer.WriteLine("  public override R Accept<R>(IVisitor<R> visitor) {");
             writer.WriteLine($"    return visitor.Visit{className}{baseName}(this);");
             writer.WriteLine("  }");
 
