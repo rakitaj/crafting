@@ -13,17 +13,24 @@ namespace Lox
 
         public string VisitGroupingExpr(Grouping expr)
         {
-            throw new NotImplementedException();
+            return this.Parenthesize("group", expr.expression);
         }
 
         public string VisitLiteralExpr(Literal expr)
         {
-            throw new NotImplementedException();
+            if (expr.value == null)
+            {
+                return "nil";
+            }
+            else
+            {
+                return expr.value.ToString();
+            }
         }
 
         public string VisitUnaryExpr(Unary expr)
         {
-            throw new NotImplementedException();
+            return this.Parenthesize(expr.operation.Lexeme, expr.right);
         }
 
         public string Parenthesize(string name, params Expr[] expressions)
