@@ -38,7 +38,7 @@ namespace Lox.Tool
                 {
                     String className = type.Split(":")[0].Trim();
                     String fields = type.Split(":")[1].Trim();
-                    //DefineType(writer, baseName, className, fields);
+                    DefineType(writer, baseName, className, fields);
                 }
 
                 writer.WriteLine("}");
