@@ -15,10 +15,10 @@ namespace Lox.Tool
                 Environment.Exit(1);
             }
             DefineAst(outputDir, "Expr", new List<string> {
-              "Binary   : Expr left, Token operator, Expr right",
+              "Binary   : Expr left, Token operation, Expr right",
               "Grouping : Expr expression",
               "Literal  : Object value",
-              "Unary    : Token operator, Expr right"
+              "Unary    : Token operation, Expr right"
             });
         }
 
@@ -42,16 +42,17 @@ namespace Lox.Tool
                     DefineType(writer, baseName, className, fields);
                 }
 
+                writer.WriteLine("}");
                 writer.Close();
             }
         }
 
         private static void DefineType(StreamWriter writer, String baseName, String className, String fieldList)
         {
-            writer.WriteLine("  public static class " + className + " : " + baseName + " {");
+            writer.WriteLine("public class " + className + " : " + baseName + " {");
 
             // Constructor.                                              
-            writer.WriteLine("    " + className + "(" + fieldList + ") {");
+            writer.WriteLine("  public " + className + "(" + fieldList + ") {");
 
             // Store parameters in fields.                               
             String[] fields = fieldList.Split(", ");
@@ -67,7 +68,7 @@ namespace Lox.Tool
             writer.WriteLine();
             foreach (String field in fields)
             {
-                writer.WriteLine("    readonly " + field + ";");
+                writer.WriteLine("    public readonly " + field + ";");
             }
 
             writer.WriteLine("  }");
