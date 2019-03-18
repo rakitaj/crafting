@@ -51,7 +51,7 @@ namespace Lox.Tool
 
         public static void DefineVisitor(StreamWriter writer, String baseName, List<String> types)
         {
-            writer.WriteLine("public interface Visitor<R> {");
+            writer.WriteLine("public interface IVisitor<R> {");
             foreach(String type in types)
             {
                 String typeName = type.Split(':')[0].Trim();
@@ -79,9 +79,9 @@ namespace Lox.Tool
 
             // Visitor pattern
             writer.WriteLine();
-            writer.WriteLine("public R Accept(Visitor<R> visitor) {");
-            writer.WriteLine($"  return visitor.Visit{className}{baseName}(this);");
-            writer.WriteLine("}");
+            writer.WriteLine("  public R Accept<R>(IVisitor<R> visitor) {");
+            writer.WriteLine($"    return visitor.Visit{className}{baseName}(this);");
+            writer.WriteLine("  }");
 
             // Fields.                                                   
             writer.WriteLine();
