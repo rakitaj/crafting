@@ -6,6 +6,11 @@ namespace Lox
 {
     public class AstPrinter : IVisitor<String>
     {
+        public String Print(Expr expr)
+        {
+            return expr.Accept(this);
+        }
+
         public string VisitBinaryExpr(Binary expr)
         {
             return this.Parenthesize(expr.operation.Lexeme, expr.left, expr.right);
@@ -39,7 +44,7 @@ namespace Lox
             builder.Append("(").Append(name);
             foreach (Expr expr in expressions)
             {
-                builder.Append("");
+                builder.Append(" ");
                 builder.Append(expr.Accept(this));
             }
             builder.Append(")");
