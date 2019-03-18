@@ -35,16 +35,29 @@ namespace Lox.Tool
                 writer.WriteLine("public abstract class " + baseName + " {");
                 writer.WriteLine("}");
 
+                DefineVisitor(writer, baseName, types);
+
                 foreach (String type in types)
                 {
-                    String className = type.Split(":")[0].Trim();
-                    String fields = type.Split(":")[1].Trim();
+                    String className = type.Split(':')[0].Trim();
+                    String fields = type.Split(':')[1].Trim();
                     DefineType(writer, baseName, className, fields);
                 }
 
                 writer.WriteLine("}");
                 writer.Close();
             }
+        }
+
+        public static void DefineVisitor(StreamWriter writer, String baseName, List<String> types)
+        {
+            writer.WriteLine("public interface Visitor<R> {");
+            foreach(String type in types)
+            {
+                String typeName = type.Split(':')[0].Trim();
+                writer.WriteLine($"  R Visit{typeName}{baseName}({typeName} {baseName.ToLower()});");
+            }
+            writer.WriteLine("}");
         }
 
         private static void DefineType(StreamWriter writer, String baseName, String className, String fieldList)
@@ -63,6 +76,12 @@ namespace Lox.Tool
             }
 
             writer.WriteLine("    }");
+
+            // Visitor pattern
+            writer.WriteLine();
+            writer.WriteLine("public R Accept(Visitor<R> visitor) {");
+            writer.WriteLine($"  return visitor.Visit{className}{baseName}(this);");
+            writer.WriteLine("}");
 
             // Fields.                                                   
             writer.WriteLine();
