@@ -33,6 +33,7 @@ namespace Lox.Tool
                 writer.WriteLine("namespace Lox");
                 writer.WriteLine("{");
                 writer.WriteLine("public abstract class " + baseName + " {");
+                writer.WriteLine("}");
 
                 foreach (String type in types)
                 {
@@ -41,8 +42,6 @@ namespace Lox.Tool
                     DefineType(writer, baseName, className, fields);
                 }
 
-                writer.WriteLine("}");
-                writer.WriteLine("}");
                 writer.Close();
             }
         }
