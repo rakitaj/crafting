@@ -15,3 +15,5 @@ Get "Hello, world!" working in Java.
 
 ## Challenge 3
 For C make "Hello, world!" and a doubly-linked list. Use heap allocated strings. Make functions to insert, find, and delete items from it. Test it :D
+
+This is done! The code is in the prework folder at the root.
