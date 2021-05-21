@@ -1,3 +1,5 @@
+#[derive(Debug)]
+#[derive(PartialEq)]
 pub enum TokenType {
     // Single-character tokens.                      
     LeftParen, RightParen, LeftBrace, RightBrace,
@@ -52,12 +54,34 @@ impl SourceCode {
             None => true
         }
     }
+
+    pub fn next_token(&mut self) -> Option<TokenType> {
+        let current_char = &self.get()?;
+        match current_char {
+            // LeftParen, RightParen, LeftBrace, RightBrace,
+            // Comma, Dot, Minus, Plus, SemiColon, Slash, Star,
+            '(' => return Some(TokenType::LeftParen),
+            ')' => return Some(TokenType::RightParen),
+            '{' => return Some(TokenType::LeftBrace),
+            '}' => return Some(TokenType::RightBrace),
+            ',' => return Some(TokenType::Comma),
+            '.' => return Some(TokenType::Dot),
+            '-' => return Some(TokenType::Minus),
+            '+' => return Some(TokenType::Plus),
+            ';' => return Some(TokenType::SemiColon),
+            '*' => return Some(TokenType::Star),
+            '/' => return Some(TokenType::Slash),
+            _ => return None
+        }
+    }
 }
 
-pub fn lex(source: SourceCode) -> Vec<TokenType> {
+pub fn lex(mut source: SourceCode) -> Vec<TokenType> {
     let mut tokens: Vec<TokenType> = Vec::new();
-    while !source.eof() {
-
+    let mut token = source.next_token();
+    while let Some(t) = token {
+        tokens.push(t);
+        token = source.next_token();
     }
     return tokens;
 }
@@ -86,5 +110,12 @@ mod tests {
         assert_eq!(source.index, 0);
         assert_eq!(source.consume().unwrap(), 'f');
         assert_eq!(source.index, 1);
+    }
+
+    #[test]
+    fn test_simple_next_token() {
+        let mut source = SourceCode::new("+".to_string());
+        let token = source.next_token().unwrap();
+        assert_eq!(token, TokenType::Plus);
     }
 }
