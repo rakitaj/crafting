@@ -38,7 +38,7 @@ impl SourceCode {
         self.source.chars().nth(self.index)
     }
 
-    pub fn peek(self, n: usize) -> Option<char> {
+    pub fn peek(&self, n: usize) -> Option<char> {
         self.source.chars().nth(&self.index + n)
     }
 
@@ -58,19 +58,60 @@ impl SourceCode {
     pub fn next_token(&mut self) -> Option<TokenType> {
         let current_char = &self.get()?;
         match current_char {
-            // LeftParen, RightParen, LeftBrace, RightBrace,
-            // Comma, Dot, Minus, Plus, SemiColon, Slash, Star,
-            '(' => return Some(TokenType::LeftParen),
-            ')' => return Some(TokenType::RightParen),
-            '{' => return Some(TokenType::LeftBrace),
-            '}' => return Some(TokenType::RightBrace),
-            ',' => return Some(TokenType::Comma),
-            '.' => return Some(TokenType::Dot),
-            '-' => return Some(TokenType::Minus),
-            '+' => return Some(TokenType::Plus),
-            ';' => return Some(TokenType::SemiColon),
-            '*' => return Some(TokenType::Star),
-            '/' => return Some(TokenType::Slash),
+            // One character tokens.
+            '(' => { self.index += 1; return Some(TokenType::LeftParen) },
+            ')' => { self.index += 1; return Some(TokenType::RightParen) },
+            '{' => { self.index += 1; return Some(TokenType::LeftBrace) },
+            '}' => { self.index += 1; return Some(TokenType::RightBrace) },
+            ',' => { self.index += 1; return Some(TokenType::Comma) },
+            '.' => { self.index += 1; return Some(TokenType::Dot) },
+            '-' => { self.index += 1; return Some(TokenType::Minus) },
+            '+' => { self.index += 1; return Some(TokenType::Plus) },
+            ';' => { self.index += 1; return Some(TokenType::SemiColon) },
+            '*' => { self.index += 1; return Some(TokenType::Star) },
+            '/' => { self.index += 1; return Some(TokenType::Slash) },
+
+            // One or two character tokens.
+            // Bang, BangEqual,
+            '!' => {
+                if self.peek(1) == Some('=') {
+                    self.index += 2;
+                    return Some(TokenType::BangEqual)
+                } else {
+                    self.index += 1;
+                    return Some(TokenType::Bang)
+                }
+            },
+            // Equal, EqualEqual,
+            '=' => {
+                if self.peek(1) == Some('=') {
+                    self.index += 2;
+                    return Some(TokenType::EqualEqual)
+                } else {
+                    self.index += 1;
+                    return Some(TokenType::Equal)
+                }
+            },
+            // Greater, GreaterEqual,
+            '>' => {
+                if self.peek(1) == Some('=') {
+                    self.index += 2;
+                    return Some(TokenType::GreaterEqual)
+                } else {
+                    self.index += 1;
+                    return Some(TokenType::Greater)
+                }
+            },
+            // Less, LessEqual,
+            '<' => {
+                if self.peek(1) == Some('=') {
+                    self.index += 2;
+                    return Some(TokenType::LessEqual)
+                } else {
+                    self.index += 1;
+                    return Some(TokenType::Less)
+                }
+            } 
             _ => return None
         }
     }
@@ -90,6 +131,7 @@ pub fn lex(mut source: SourceCode) -> Vec<TokenType> {
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
+    use rstest::*;
 
     #[test]
     fn test_eof_false() {
@@ -117,5 +159,14 @@ mod tests {
         let mut source = SourceCode::new("+".to_string());
         let token = source.next_token().unwrap();
         assert_eq!(token, TokenType::Plus);
+    }
+
+    #[rstest]
+    #[case("!=", Some(TokenType::BangEqual))]
+    #[case("!", Some(TokenType::Bang))]
+    fn test_next_token(#[case] raw_source: String, #[case] expected_token: Option<TokenType>) {
+        let mut source_code = SourceCode::new(raw_source);
+        let token = source_code.next_token();
+        assert_eq!(token, expected_token);
     }
 }
