@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum TokenType {
@@ -21,16 +23,38 @@ pub enum TokenType {
     Eof
 }
 
+impl fmt::Display for TokenType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+pub struct Token {
+    token_type: TokenType,
+    line: usize,
+    lexeme: String,
+    literal: String
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Use `self.number` to refer to each positional data point.
+        write!(f, "{} {} {}", &self.token_type, &self.lexeme, &self.literal)
+    }
+}
+
 pub struct SourceCode {
     pub source: String,
-    pub index: usize
+    pub index: usize,
+    pub line: usize
 }
 
 impl SourceCode {
     pub fn new(source: String) -> Self {
         SourceCode {
             source: source,
-            index: 0
+            index: 0,
+            line: 1
         }
     }
 
@@ -40,12 +64,6 @@ impl SourceCode {
 
     pub fn peek(&self, n: usize) -> Option<char> {
         self.source.chars().nth(&self.index + n)
-    }
-
-    pub fn consume(&mut self) -> Option<char> {
-        let c = &self.get();
-        self.index += 1;
-        return *c;
     }
 
     pub fn eof(&self) -> bool {
@@ -58,6 +76,8 @@ impl SourceCode {
     pub fn next_token(&mut self) -> Option<TokenType> {
         let current_char = &self.get()?;
         match current_char {
+            // Handle newline
+            '\n' => { self.index += 1; self.line += 1; },
             // One character tokens.
             '(' => { self.index += 1; return Some(TokenType::LeftParen) },
             ')' => { self.index += 1; return Some(TokenType::RightParen) },
@@ -147,14 +167,6 @@ mod tests {
     }
 
     #[test]
-    fn test_consume_should_increment() {
-        let mut source = SourceCode::new("foobar".to_string());
-        assert_eq!(source.index, 0);
-        assert_eq!(source.consume().unwrap(), 'f');
-        assert_eq!(source.index, 1);
-    }
-
-    #[test]
     fn test_simple_next_token() {
         let mut source = SourceCode::new("+".to_string());
         let token = source.next_token().unwrap();
@@ -164,6 +176,10 @@ mod tests {
     #[rstest]
     #[case("!=", Some(TokenType::BangEqual))]
     #[case("!", Some(TokenType::Bang))]
+    #[case("<=", Some(TokenType::LessEqual))]
+    #[case("<", Some(TokenType::Less))]
+    #[case(">=", Some(TokenType::GreaterEqual))]
+    #[case(">", Some(TokenType::Greater))]
     fn test_next_token(#[case] raw_source: String, #[case] expected_token: Option<TokenType>) {
         let mut source_code = SourceCode::new(raw_source);
         let token = source_code.next_token();
