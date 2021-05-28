@@ -116,6 +116,10 @@ impl SourceCode {
         self.source.chars().nth(&self.index + n)
     }
 
+    pub fn get_string(&self, n: usize) -> String {
+        self.source[self.index..self.index + n].to_string()
+    }
+
     pub fn eof(&self) -> bool {
         match &self.get() {
             Some(_) => false,
@@ -126,28 +130,50 @@ impl SourceCode {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
         while let Some(c) = self.get() {
-            let start = self.index;
-            self.index += 1;
             match c {
-                ' ' => continue,
-                '\t' => continue,
+                ' ' => {},
+                '\t' => {},
                 '\n' => {
                     self.line += 1;
-                    continue;
                 }
-                '(' => tokens.push(Token::new(TokenType::LeftParen, self.line, self.source[start..self.index].to_string(), None)),
-                ')' => tokens.push(Token::new(TokenType::RightParen, self.line, self.source[start..self.index].to_string(), None)),
-                '{' => tokens.push(Token::new(TokenType::LeftBrace, self.line, self.source[start..self.index].to_string(), None)),
-                '}' => tokens.push(Token::new(TokenType::RightBrace, self.line, self.source[start..self.index].to_string(), None)),
-                ',' => tokens.push(Token::new(TokenType::Comma, self.line, self.source[start..self.index].to_string(), None)),
-                '.' => tokens.push(Token::new(TokenType::Dot, self.line, self.source[start..self.index].to_string(), None)),
-                '-' => tokens.push(Token::new(TokenType::Minus, self.line, self.source[start..self.index].to_string(), None)),
-                '+' => tokens.push(Token::new(TokenType::Plus, self.line, self.source[start..self.index].to_string(), None)),
-                ';' => tokens.push(Token::new(TokenType::SemiColon, self.line, self.source[start..self.index].to_string(), None)),
-                '*' => tokens.push(Token::new(TokenType::Star, self.line, self.source[start..self.index].to_string(), None)),
-                '/' => tokens.push(Token::new(TokenType::Slash, self.line, self.source[start..self.index].to_string(), None)),
-                _ => continue,
+                '(' => tokens.push(Token::new(TokenType::LeftParen, self.line, self.get_string(1), None)),
+                ')' => tokens.push(Token::new(TokenType::RightParen, self.line, self.get_string(1), None)),
+                '{' => tokens.push(Token::new(TokenType::LeftBrace, self.line, self.get_string(1), None)),
+                '}' => tokens.push(Token::new(TokenType::RightBrace, self.line, self.get_string(1), None)),
+                ',' => tokens.push(Token::new(TokenType::Comma, self.line, self.get_string(1), None)),
+                '.' => tokens.push(Token::new(TokenType::Dot, self.line, self.get_string(1), None)),
+                '-' => tokens.push(Token::new(TokenType::Minus, self.line, self.get_string(1), None)),
+                '+' => tokens.push(Token::new(TokenType::Plus, self.line, self.get_string(1), None)),
+                ';' => tokens.push(Token::new(TokenType::SemiColon, self.line, self.get_string(1), None)),
+                '*' => tokens.push(Token::new(TokenType::Star, self.line, self.get_string(1), None)),
+                '/' => tokens.push(Token::new(TokenType::Slash, self.line, self.get_string(1), None)),
+                '!' => {
+                    match self.peek(1) {
+                        Some('=') => { tokens.push(Token::new(TokenType::BangEqual, self.line, self.get_string(2), None)); self.index += 1; },
+                        _ => tokens.push(Token::new(TokenType::Bang, self.line, self.get_string(1), None))
+                    }
+                },
+                '=' => {
+                    match self.peek(1) {
+                        Some('=') => { tokens.push(Token::new(TokenType::EqualEqual, self.line, self.get_string(2), None)); self.index += 1; },
+                        _ => tokens.push(Token::new(TokenType::Equal, self.line, self.get_string(1), None))
+                    }
+                },
+                '<' => {
+                    match self.peek(1) {
+                        Some('=') => { tokens.push(Token::new(TokenType::LessEqual, self.line, self.get_string(2), None)); self.index += 1; },
+                        _ => tokens.push(Token::new(TokenType::Less, self.line, self.get_string(1), None))
+                    }
+                },
+                '>' => {
+                    match self.peek(1) {
+                        Some('=') => { tokens.push(Token::new(TokenType::GreaterEqual, self.line, self.get_string(2), None)); self.index += 1; },
+                        _ => tokens.push(Token::new(TokenType::Greater, self.line, self.get_string(1), None))
+                    }
+                }
+                _ => {},
             }
+            self.index += 1;
         }
         return tokens;
     }
@@ -177,14 +203,6 @@ mod tests {
     }
 
     #[test]
-    fn test_scan_tokens_single_token() {
-        let mut source = SourceCode::new("+".to_string());
-        let tokens = source.scan_tokens();
-        let token = Token::new(TokenType::Plus, 1, "+".to_string(), None);
-        assert_eq!(tokens, vec![token]);
-    }
-
-    #[test]
     fn test_scan_tokens_multiple_tokens() {
         let mut source = SourceCode::new("+  - /".to_string());
         let tokens = source.scan_tokens();
@@ -194,16 +212,19 @@ mod tests {
             Token::new(TokenType::Slash, 1, "/".to_string(), None)]);
     }
 
-    // #[rstest]
-    // #[case("!=", Some(TokenType::BangEqual))]
-    // #[case("!", Some(TokenType::Bang))]
-    // #[case("<=", Some(TokenType::LessEqual))]
-    // #[case("<", Some(TokenType::Less))]
-    // #[case(">=", Some(TokenType::GreaterEqual))]
-    // #[case(">", Some(TokenType::Greater))]
-    // fn test_next_token(#[case] raw_source: String, #[case] expected_token: Option<TokenType>) {
-    //     let mut source_code = SourceCode::new(raw_source);
-    //     let token = source_code.next_token();
-    //     assert_eq!(token, expected_token);
-    // }
+    #[rstest]
+    #[case("+", vec![Token::new(TokenType::Plus, 1, "+".to_string(), None)])]
+    #[case("!=", vec![Token::new(TokenType::BangEqual, 1, "!=".to_string(), None)])]
+    #[case("!", vec![Token::new(TokenType::Bang, 1, "!".to_string(), None)])]
+    #[case("==", vec![Token::new(TokenType::EqualEqual, 1, "==".to_string(), None)])]
+    #[case("=", vec![Token::new(TokenType::Equal, 1, "=".to_string(), None)])]
+    #[case("<=", vec![Token::new(TokenType::LessEqual, 1, "<=".to_string(), None)])]
+    #[case("<", vec![Token::new(TokenType::Less, 1, "<".to_string(), None)])]
+    #[case(">=", vec![Token::new(TokenType::GreaterEqual, 1, ">=".to_string(), None)])]
+    #[case(">", vec![Token::new(TokenType::Greater, 1, ">".to_string(), None)])]
+    fn test_scan_tokens_single_token(#[case] raw_source: String, #[case] expected_tokens: Vec<Token>) {
+        let mut source_code = SourceCode::new(raw_source);
+        let token = source_code.scan_tokens();
+        assert_eq!(token, expected_tokens);
+    }
 }
