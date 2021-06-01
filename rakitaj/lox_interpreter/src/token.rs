@@ -127,6 +127,19 @@ impl SourceCode {
         }
     }
 
+    pub fn advance_to_eol(&mut self) -> () {
+        while let Some(c) = self.get() {
+            match c {
+                '\n' => { self.line += 1; break }
+                _ => self.index += 1
+            }
+        }
+    }
+
+    pub fn scan_string_literal(&mut self) -> String {
+        "foo".to_string()
+    }
+
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
         while let Some(c) = self.get() {
@@ -146,7 +159,12 @@ impl SourceCode {
                 '+' => tokens.push(Token::new(TokenType::Plus, self.line, self.get_string(1), None)),
                 ';' => tokens.push(Token::new(TokenType::SemiColon, self.line, self.get_string(1), None)),
                 '*' => tokens.push(Token::new(TokenType::Star, self.line, self.get_string(1), None)),
-                '/' => tokens.push(Token::new(TokenType::Slash, self.line, self.get_string(1), None)),
+                '/' => {
+                    match self.peek(1) {
+                        Some('/') => { self.advance_to_eol() },
+                        _ => tokens.push(Token::new(TokenType::Slash, self.line, self.get_string(1), None))
+                    }
+                },
                 '!' => {
                     match self.peek(1) {
                         Some('=') => { tokens.push(Token::new(TokenType::BangEqual, self.line, self.get_string(2), None)); self.index += 1; },
@@ -170,18 +188,20 @@ impl SourceCode {
                         Some('=') => { tokens.push(Token::new(TokenType::GreaterEqual, self.line, self.get_string(2), None)); self.index += 1; },
                         _ => tokens.push(Token::new(TokenType::Greater, self.line, self.get_string(1), None))
                     }
-                }
+                },
+                '"' => {
+                    let string_literal = self.scan_string_literal();
+                    tokens.push(Token::new(TokenType::String(string_literal), self.line, "".to_string(), None));
+                },
                 _ => {},
             }
             self.index += 1;
         }
+        tokens.push(Token::new(TokenType::Eof, self.line, "".to_string(), None));
         return tokens;
     }
 }
 
-pub fn lex(mut source: SourceCode) -> Vec<Token> {
-    return source.scan_tokens();
-}
 
 #[cfg(test)]
 mod tests {
@@ -209,7 +229,8 @@ mod tests {
         assert_eq!(tokens, vec![
             Token::new(TokenType::Plus, 1, "+".to_string(), None), 
             Token::new(TokenType::Minus, 1, "-".to_string(), None), 
-            Token::new(TokenType::Slash, 1, "/".to_string(), None)]);
+            Token::new(TokenType::Slash, 1, "/".to_string(), None),
+            Token::new(TokenType::Eof, 1, "".to_string(), None)]);
     }
 
     #[rstest]
@@ -224,7 +245,19 @@ mod tests {
     #[case(">", vec![Token::new(TokenType::Greater, 1, ">".to_string(), None)])]
     fn test_scan_tokens_single_token(#[case] raw_source: String, #[case] expected_tokens: Vec<Token>) {
         let mut source_code = SourceCode::new(raw_source);
-        let token = source_code.scan_tokens();
-        assert_eq!(token, expected_tokens);
+        let tokens = source_code.scan_tokens();
+        assert_eq!(tokens[0], expected_tokens[0]);
+        assert_eq!(tokens[1], Token::new(TokenType::Eof, 1, "".to_string(), None))
+    }
+
+    #[test]
+    fn test_scan_tokens_comment() {
+        let mut source = SourceCode::new("+ == // **\n!".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::Plus, 1, "+".to_string(), None),
+            Token::new(TokenType::EqualEqual, 1, "==".to_string(), None),
+            Token::new(TokenType::Bang, 2, "!".to_string(), None),
+            Token::new(TokenType::Eof, 2, "".to_string(), None)]);
     }
 }

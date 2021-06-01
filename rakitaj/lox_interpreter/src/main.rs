@@ -4,7 +4,7 @@ use std::io;
 use std::io::prelude::*;
 
 mod token;
-use token::{SourceCode, lex};
+use token::SourceCode;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -40,9 +40,8 @@ fn run_prompt() -> () {
 }
 
 fn run(raw_source: String) -> () {
-    let source = SourceCode::new(raw_source);
-    let tokens = lex(source);
-    for token in tokens {
+    let mut source = SourceCode::new(raw_source);
+    for token in source.scan_tokens() {
         println!("{:?}", token);
     }
 }
