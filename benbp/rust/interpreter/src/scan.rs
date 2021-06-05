@@ -159,16 +159,28 @@ where
 }
 
 /*
-trait CautiousTakeWhileable<'a, T>: Iterator {
-    fn cautious_take_while<P>(&'a mut self, P) -> CautiousTakeWhile<'a, T, P> where
-        P: FnMut(&Self::Item) -> bool;
+fn foo<'a, T: Iterator, P: FnMut(&T::Item) -> bool>(t: T, p: P) -> TakeUntil<'a, T, P> {
+    return TakeUntil {
+        inner: t,
+        condition: p,
+    };
+}
+*/
+
+trait TakeUntilable<'a, T: Iterator>: Iterator {
+    fn take_until<P: FnMut(&T::Item) -> bool>(f: P) -> TakeUntil<'a, T, P>;
+    //    fn take_until<P: FnMut(&Self::Item)>(&'a mut self, f: P) -> TakeUntil<'a, T, P>;
+    //    ) -> TakeUntil<'a, T: Iterator, P: FnMut(&T::Item)>;
+    //fn take_until<P: FnMut(&Self::Item) -> bool>>(&'a mut self, P) -> TakeUntil<'a, T: Iterator, P>;
+    //    fn cautious_take_while<P>(&'a mut self, P) -> TakeUntil<'a, T: Iterator + 'a, P> where
+    //        P: FnMut(&Self::Item) -> bool;
 }
 
-
-impl<'a, T: Iterator> CautiousTakeWhileable<'a, T> for Peekable<T> {
-    fn cautious_take_while<P>(&'a mut self, f: P) -> CautiousTakeWhile<'a, T, P> where
+/*
+impl<'a, T: Iterator> TakeUntilable<'a, T> for Peekable<T> {
+    fn cautious_take_while<P>(&'a mut self, f: P) -> TakeUntil<'a, T, P> where
         P: FnMut(&'a(T::Item)) -> bool {
-                CautiousTakeWhile{inner:  self, condition: f}
+                TakeUntil{inner:  self, condition: f}
         }
 }
 */
