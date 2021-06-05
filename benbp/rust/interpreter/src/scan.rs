@@ -7,13 +7,6 @@ pub struct SourceContext {
     line: i32,
 }
 
-impl SourceContext {
-    fn next() -> char {
-        let foo: char = 'a';
-        foo
-    }
-}
-
 pub fn new_source(program: String) -> SourceContext {
     SourceContext {
         source: program,
@@ -33,6 +26,7 @@ fn scan_token(source: SourceContext) {
 
     while let Some((idx, c)) = curr.next() {
         match c {
+            // Basics
             '(' => tokens.push(Token::new(TokenType::LeftParen, "(", ctx.line, None)),
             ')' => tokens.push(Token::new(TokenType::RightParen, ")", ctx.line, None)),
             '{' => tokens.push(Token::new(TokenType::LeftBrace, "{", ctx.line, None)),
@@ -44,11 +38,11 @@ fn scan_token(source: SourceContext) {
             ';' => tokens.push(Token::new(TokenType::Semicolon, ";", ctx.line, None)),
             '*' => tokens.push(Token::new(TokenType::Star, "*", ctx.line, None)),
 
-            // Add peek for combos
+            // Lookaheads
             '!' => {
                 match curr.peek() {
                     Some((_, '=')) => {
-                        curr.next(); // advance iterator past lexeme
+                        curr.next();
                         tokens.push(Token::new(TokenType::BangEqual, "!=", ctx.line, None));
                     }
                     _ => tokens.push(Token::new(TokenType::Bang, "!", ctx.line, None)),
@@ -57,8 +51,8 @@ fn scan_token(source: SourceContext) {
             '=' => {
                 match curr.peek() {
                     Some((_, '=')) => {
-                        curr.next(); // advance iterator past lexeme
-                        tokens.push(Token::new(TokenType::Equal, "==", ctx.line, None));
+                        curr.next();
+                        tokens.push(Token::new(TokenType::EqualEqual, "==", ctx.line, None));
                     }
                     _ => tokens.push(Token::new(TokenType::Equal, "=", ctx.line, None)),
                 };
@@ -66,7 +60,7 @@ fn scan_token(source: SourceContext) {
             '<' => {
                 match curr.peek() {
                     Some((_, '=')) => {
-                        curr.next(); // advance iterator past lexeme
+                        curr.next();
                         tokens.push(Token::new(TokenType::LessEqual, "<=", ctx.line, None));
                     }
                     _ => tokens.push(Token::new(TokenType::Less, "<", ctx.line, None)),
@@ -75,7 +69,7 @@ fn scan_token(source: SourceContext) {
             '>' => {
                 match curr.peek() {
                     Some((_, '=')) => {
-                        curr.next(); // advance iterator past lexeme
+                        curr.next();
                         tokens.push(Token::new(TokenType::GreaterEqual, ">=", ctx.line, None));
                     }
                     _ => tokens.push(Token::new(TokenType::Greater, ">", ctx.line, None)),
@@ -84,7 +78,7 @@ fn scan_token(source: SourceContext) {
             '/' => {
                 match curr.peek() {
                     Some((_, '/')) => {
-                        curr.next(); // advance iterator past lexeme
+                        curr.next();
                         while let Some((_, next_c)) = curr.peek() {
                             match next_c {
                                 '\n' => break,
@@ -99,6 +93,8 @@ fn scan_token(source: SourceContext) {
                 };
             }
 
+            // Misc
+            ' ' | '\r' | '\t' => {}
             '\n' => ctx.line += 1,
             _ => {
                 ctx.idx = idx;
