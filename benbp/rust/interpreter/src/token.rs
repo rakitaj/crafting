@@ -28,7 +28,7 @@ impl Token {
         lexeme: &'static str,
         line: i32,
         literal: Option<Literal>,
-    ) -> Token {
+    ) -> Self {
         Token {
             token_type,
             lexeme,

@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+
 use crate::token::Token;
 use crate::token::TokenType;
 
@@ -96,6 +98,25 @@ fn scan_token(source: SourceContext) {
             // Misc
             ' ' | '\r' | '\t' => {}
             '\n' => ctx.line += 1,
+            '0'..='9' => {
+                let twcurr = &mut curr;
+                let tw: String = TakeUntil {
+                    inner: twcurr,
+                    condition: |(_, d)| d.is_digit(10),
+                }
+                .map(|(_, d)| d)
+                .collect();
+
+                println!("\ndigits!: {}", tw);
+                //let number: String = curr
+                //    .take_while(|(_, d)| d.is_digit(10) || *d == '.')
+                //    .map(|(_, d)| d)
+                //    .collect();
+                //if number.contains('.') {
+                //} else {
+                //}
+                //tokens.push(Token::new(TokenType::Number, "", ctx.line, Option<number>));
+            }
             _ => {
                 ctx.idx = idx;
                 // println!("DEFAULT {} at {}", c, idx)
@@ -110,3 +131,44 @@ fn scan_token(source: SourceContext) {
 
     println!("");
 }
+struct TakeUntil<'a, T: Iterator + 'a, P: FnMut(&T::Item) -> bool>
+where
+    T::Item: 'a,
+{
+    inner: &'a mut Peekable<T>,
+    condition: P,
+}
+
+impl<'a, T: Iterator, P> Iterator for TakeUntil<'a, T, P>
+where
+    P: FnMut(&T::Item) -> bool,
+{
+    type Item = T::Item;
+
+    fn next(&mut self) -> Option<T::Item> {
+        let return_next = match self.inner.peek() {
+            Some(ref v) => (self.condition)(v),
+            _ => false,
+        };
+        if return_next {
+            self.inner.next()
+        } else {
+            None
+        }
+    }
+}
+
+/*
+trait CautiousTakeWhileable<'a, T>: Iterator {
+    fn cautious_take_while<P>(&'a mut self, P) -> CautiousTakeWhile<'a, T, P> where
+        P: FnMut(&Self::Item) -> bool;
+}
+
+
+impl<'a, T: Iterator> CautiousTakeWhileable<'a, T> for Peekable<T> {
+    fn cautious_take_while<P>(&'a mut self, f: P) -> CautiousTakeWhile<'a, T, P> where
+        P: FnMut(&'a(T::Item)) -> bool {
+                CautiousTakeWhile{inner:  self, condition: f}
+        }
+}
+*/
