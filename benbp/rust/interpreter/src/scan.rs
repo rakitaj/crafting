@@ -7,6 +7,11 @@ pub struct SourceContext {
     source: String,
     idx: usize,
     line: i32,
+    had_error: bool
+}
+
+fn report_error(line: i32, offset: usize, message: &str) {
+    println!("[line {}, offset {}] Error: {}", line, offset, message);
 }
 
 pub fn new_source(program: String) -> SourceContext {
@@ -14,6 +19,7 @@ pub fn new_source(program: String) -> SourceContext {
         source: program,
         idx: 0,
         line: 0,
+        had_error: false,
     }
 }
 
@@ -102,8 +108,32 @@ fn scan_token(source: SourceContext) {
                     .collect();
                 let lexeme: String = format!("{}{}", c, rest);
                 let number: f64 = lexeme.parse().unwrap();
-
                 tokens.push(Token::new(TokenType::Number, lexeme, ctx.line, Some(Literal::NumberLiteral(number))));
+            }
+            '"' => {
+                let literal: String = (&mut curr)
+                    .take_until(|(_, s)| *s != '"' && *s != '\n')
+                    .map(|(_, s)| s)
+                    .collect();
+                if let Some(next) = curr.next() {
+                    match next {
+                        (_, '\n') => {
+                            ctx.line += 1;
+                            ctx.had_error = true;
+                            report_error(ctx.line, next.0, "Unterminated string");
+                        }
+                        _ => {
+                            tokens.push(
+                                Token::new(
+                                    TokenType::Number,
+                                    format!("\"{}\"", literal),
+                                    ctx.line,
+                                    Some(Literal::StringLiteral(literal))
+                                )
+                            );
+                        }
+                    };
+                }
             }
             _ => {
                 ctx.idx = idx;
