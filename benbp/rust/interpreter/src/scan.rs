@@ -1,23 +1,22 @@
 use crate::iter_extensions::TakeUntilable;
+use crate::token::get_keyword;
 use crate::token::Literal;
 use crate::token::Token;
 use crate::token::TokenType;
 
 pub struct SourceContext {
     source: String,
-    idx: usize,
     line: i32,
     had_error: bool
 }
 
-fn report_error(line: i32, offset: usize, message: &str) {
+fn report_error(line: i32, offset: usize, message: String) {
     println!("[line {}, offset {}] Error: {}", line, offset, message);
 }
 
 pub fn new_source(program: String) -> SourceContext {
     SourceContext {
         source: program,
-        idx: 0,
         line: 0,
         had_error: false,
     }
@@ -103,7 +102,7 @@ fn scan_token(source: SourceContext) {
             '\n' => ctx.line += 1,
             '0'..='9' => {
                 let rest: String = (&mut curr)
-                    .take_until(|(_, d)| d.is_digit(10) || *d == '.')
+                    .take_until(|(_, d)| d.is_numeric() || *d == '.')
                     .map(|(_, d)| d)
                     .collect();
                 let lexeme: String = format!("{}{}", c, rest);
@@ -120,12 +119,12 @@ fn scan_token(source: SourceContext) {
                         (_, '\n') => {
                             ctx.line += 1;
                             ctx.had_error = true;
-                            report_error(ctx.line, next.0, "Unterminated string");
+                            report_error(ctx.line, next.0, format!("Unterminated string"));
                         }
                         _ => {
                             tokens.push(
                                 Token::new(
-                                    TokenType::Number,
+                                    TokenType::StringLiteral,
                                     format!("\"{}\"", literal),
                                     ctx.line,
                                     Some(Literal::StringLiteral(literal))
@@ -135,17 +134,29 @@ fn scan_token(source: SourceContext) {
                     };
                 }
             }
+            'a'..='z' | 'A'..='Z' => {
+                let rest: String = (&mut curr)
+                    .take_until(|(_, s)| s.is_alphanumeric())
+                    .map(|(_, s)| s)
+                    .collect();
+                let lexeme: String = format!("{}{}", c, rest);
+                tokens.push(
+                    Token::new(
+                        get_keyword(lexeme.clone()),
+                        lexeme.clone(),
+                        ctx.line,
+                        Some(Literal::IdentifierLiteral(lexeme))
+                    )
+                );
+            }
             _ => {
-                ctx.idx = idx;
-                // println!("DEFAULT {} at {}", c, idx)
-                print!("{}", c);
+                ctx.had_error = true;
+                report_error(ctx.line, idx, format!("Unexpected character {}", c));
             }
         }
     }
 
     for t in tokens {
-        println!("t: {}", t.lexeme);
+        println!("[l] {} [t] {:?}", t.lexeme, t.token_type);
     }
-
-    println!("");
 }
