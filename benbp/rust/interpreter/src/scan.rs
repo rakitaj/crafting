@@ -156,7 +156,9 @@ fn scan_token(source: SourceContext) {
         }
     }
 
+    tokens.push(Token::new(TokenType::EOF, "".to_string(), ctx.line, None));
+
     for t in tokens {
-        println!("[l] {} [t] {:?}", t.lexeme, t.token_type);
+        println!("[x] {} [t] {:?} [l] {}", t.lexeme, t.token_type, t.line);
     }
 }
