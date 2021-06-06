@@ -1,19 +1,3 @@
-// use std::fmt;
-
-// impl fmt::Display for Token {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         match self.literal {
-//             Some(l) => { write!(f, "{}", self.literal) }
-//             None => { write!(f, "None") }
-//         }
-// }
-//
-// impl fmt::Display for Literal {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "{}", self)
-//     }
-// }
-
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,

@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-pub struct TakeUntil<'a, T: Iterator + 'a, P: FnMut(&T::Item) -> bool>
+pub struct TakeWhileExclusive<'a, T: Iterator + 'a, P: FnMut(&T::Item) -> bool>
 where
     T::Item: 'a,
 {
@@ -8,7 +8,7 @@ where
     condition: P,
 }
 
-impl<'a, T: Iterator, P> Iterator for TakeUntil<'a, T, P>
+impl<'a, T: Iterator, P> Iterator for TakeWhileExclusive<'a, T, P>
 where
     P: FnMut(&T::Item) -> bool,
 {
@@ -27,13 +27,13 @@ where
     }
 }
 
-pub trait TakeUntilable<'a, T: Iterator>: Iterator {
-    fn take_until<P: FnMut(&T::Item) -> bool>(&'a mut self, f: P) -> TakeUntil<'a, T, P>;
+pub trait TakeWhileExclusiveable<'a, T: Iterator>: Iterator {
+    fn take_while_exclusive<P: FnMut(&T::Item) -> bool>(&'a mut self, f: P) -> TakeWhileExclusive<'a, T, P>;
 }
 
-impl<'a, T: Iterator> TakeUntilable<'a, T> for Peekable<T> {
-    fn take_until<P: FnMut(&T::Item) -> bool>(&'a mut self, f: P) -> TakeUntil<'a, T, P> {
-        TakeUntil {
+impl<'a, T: Iterator> TakeWhileExclusiveable<'a, T> for Peekable<T> {
+    fn take_while_exclusive<P: FnMut(&T::Item) -> bool>(&'a mut self, f: P) -> TakeWhileExclusive<'a, T, P> {
+        TakeWhileExclusive {
             inner: self,
             condition: f,
         }

@@ -12,5 +12,7 @@ fn main() {
     let program = fs::read_to_string(filename).expect(&format!("Error reading file {}", filename));
 
     let source = scan::new_source(program);
-    scan::tokenize(source);
+    if scan::tokenize(source) {
+        std::process::exit(65);
+    }
 }

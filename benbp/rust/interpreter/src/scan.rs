@@ -1,4 +1,4 @@
-use crate::iter_extensions::TakeUntilable;
+use crate::iter_extensions::TakeWhileExclusiveable;
 use crate::token::get_keyword;
 use crate::token::Literal;
 use crate::token::Token;
@@ -7,9 +7,10 @@ use crate::token::TokenType;
 pub struct SourceContext {
     source: String,
     line: i32,
-    had_error: bool
+    pub had_error: bool
 }
 
+// TODO: track offset incrementally to derive column in line
 fn report_error(line: i32, offset: usize, message: String) {
     println!("[line {}, offset {}] Error: {}", line, offset, message);
 }
@@ -22,11 +23,7 @@ pub fn new_source(program: String) -> SourceContext {
     }
 }
 
-pub fn tokenize(source: SourceContext) {
-    scan_token(source)
-}
-
-fn scan_token(source: SourceContext) {
+pub fn tokenize(source: SourceContext) -> bool {
     let mut ctx = source;
     let mut curr = ctx.source.char_indices().peekable();
     let mut tokens: Vec<Token> = Vec::new();
@@ -102,7 +99,7 @@ fn scan_token(source: SourceContext) {
             '\n' => ctx.line += 1,
             '0'..='9' => {
                 let rest: String = (&mut curr)
-                    .take_until(|(_, d)| d.is_numeric() || *d == '.')
+                    .take_while_exclusive(|(_, d)| d.is_numeric() || *d == '.')
                     .map(|(_, d)| d)
                     .collect();
                 let lexeme: String = format!("{}{}", c, rest);
@@ -111,7 +108,7 @@ fn scan_token(source: SourceContext) {
             }
             '"' => {
                 let literal: String = (&mut curr)
-                    .take_until(|(_, s)| *s != '"' && *s != '\n')
+                    .take_while_exclusive(|(_, s)| *s != '"' && *s != '\n')
                     .map(|(_, s)| s)
                     .collect();
                 if let Some(next) = curr.next() {
@@ -136,7 +133,7 @@ fn scan_token(source: SourceContext) {
             }
             'a'..='z' | 'A'..='Z' => {
                 let rest: String = (&mut curr)
-                    .take_until(|(_, s)| s.is_alphanumeric())
+                    .take_while_exclusive(|(_, s)| s.is_alphanumeric())
                     .map(|(_, s)| s)
                     .collect();
                 let lexeme: String = format!("{}{}", c, rest);
@@ -160,5 +157,7 @@ fn scan_token(source: SourceContext) {
 
     for t in tokens {
         println!("[x] {} [t] {:?} [l] {}", t.lexeme, t.token_type, t.line);
-    }
+    };
+
+    ctx.had_error
 }
