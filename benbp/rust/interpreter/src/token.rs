@@ -14,21 +14,15 @@
 //     }
 // }
 
-#[allow(dead_code)]
 pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: &'static str,
+    pub lexeme: String,
     pub line: i32,
     pub literal: Option<Literal>,
 }
 
 impl Token {
-    pub fn new(
-        token_type: TokenType,
-        lexeme: &'static str,
-        line: i32,
-        literal: Option<Literal>,
-    ) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, line: i32, literal: Option<Literal>) -> Self {
         Token {
             token_type,
             lexeme,
@@ -39,11 +33,11 @@ impl Token {
 }
 
 pub enum Literal {
-    I32Literal(i32),
+    NumberLiteral(f64),
     StringLiteral(String),
+    IdentifierLiteral(String),
 }
 
-#[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
