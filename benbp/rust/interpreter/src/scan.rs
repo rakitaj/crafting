@@ -8,17 +8,18 @@ use crate::token::TokenType;
 
 pub struct SourceContext {
     line: i32,
+    offset: usize,
     pub had_error: bool
 }
 
-// TODO: track offset incrementally to derive column in line
-fn report_error(line: i32, offset: usize, message: String) {
-    println!("[line {}, offset {}] Error: {}", line, offset, message);
+fn report_error(line: i32, col: usize, message: String) {
+    println!("[line {}, col {}] Error: {}", line, col, message);
 }
 
 pub fn tokenize(program: String) -> bool {
     let ctx = &mut SourceContext {
         line: 0,
+        offset: 0,
         had_error: false,
     };
     let curr = &mut program.char_indices().peekable();
@@ -45,14 +46,14 @@ pub fn tokenize(program: String) -> bool {
             '/' => { match_comment(curr, ctx.line) }
             // ----------- Misc -----------
             ' ' | '\r' | '\t' => { None }
-            '\n' => { ctx.line += 1; None },
+            '\n' => { ctx.line += 1; ctx.offset = idx; None },
             // ----------- Literals -----------
             '0'..='9' => { match_numeric(curr, c, ctx.line) }
             '"' => { match_string_literal(curr, ctx) }
             'a'..='z' | 'A'..='Z' => { match_alphanumeric(curr, c, ctx.line) }
             _ => {
                 ctx.had_error = true;
-                report_error(ctx.line, idx, format!("Unexpected character {}", c));
+                report_error(ctx.line, idx - ctx.offset, format!("Unexpected character {}", c));
                 None
             }
         };
@@ -74,8 +75,7 @@ pub fn tokenize(program: String) -> bool {
 }
 
 fn match_lexeme_and_advance(iter: &mut Peekable<CharIndices>, first: char, second: char, line: i32) -> Option<Token> {
-    // TODO: find alternative and/or verify clone is cheap (I think it is, just a small Item tuple + pointer)
-    match iter.clone().peek() {
+    match iter.peek() {
         Some((_, c)) if *c == second => {
             iter.next();
             Token::new(format!("{}{}", first, second).as_str(), line, None)
@@ -130,7 +130,7 @@ fn match_string_literal(iter: &mut Peekable<CharIndices>, ctx: &mut SourceContex
             (_, '\n') => {
                 ctx.line += 1;
                 ctx.had_error = true;
-                report_error(ctx.line, next.0, format!("Unterminated string"));
+                report_error(ctx.line, next.0 - ctx.offset, format!("Unterminated string"));
                 None
             }
             _ => Token::new_as_type(
