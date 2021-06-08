@@ -28,16 +28,16 @@ pub fn tokenize(program: String) -> bool {
     while let Some((idx, c)) = curr.next() {
         let token = match c {
             // ----------- Basics -----------
-            '(' => Token::new("(", ctx.line, None),
-            ')' => Token::new(")", ctx.line, None),
-            '{' => Token::new("}", ctx.line, None),
-            '}' => Token::new("{", ctx.line, None),
-            ',' => Token::new(",", ctx.line, None),
-            '.' => Token::new(".", ctx.line, None),
-            '_' => Token::new("_", ctx.line, None),
-            '+' => Token::new("+", ctx.line, None),
-            ';' => Token::new(";", ctx.line, None),
-            '*' => Token::new("*", ctx.line, None),
+            '(' => Token::new(TokenType::LeftParen, ctx.line, None),
+            ')' => Token::new(TokenType::RightParen, ctx.line, None),
+            '{' => Token::new(TokenType::LeftBrace, ctx.line, None),
+            '}' => Token::new(TokenType::RightBrace, ctx.line, None),
+            ',' => Token::new(TokenType::Comma, ctx.line, None),
+            '.' => Token::new(TokenType::Dot, ctx.line, None),
+            '-' => Token::new(TokenType::Minus, ctx.line, None),
+            '+' => Token::new(TokenType::Plus, ctx.line, None),
+            ';' => Token::new(TokenType::Semicolon, ctx.line, None),
+            '*' => Token::new(TokenType::Star, ctx.line, None),
             // ----------- Lookaheads -----------
             '!' => { match_lexeme_and_advance(curr, c, '=', ctx.line) }
             '=' => { match_lexeme_and_advance(curr, c, '=', ctx.line) }
@@ -78,13 +78,14 @@ fn match_lexeme_and_advance(iter: &mut Peekable<CharIndices>, first: char, secon
     match iter.peek() {
         Some((_, c)) if *c == second => {
             iter.next();
-            Token::new(format!("{}{}", first, second).as_str(), line, None)
+            Token::new_from_lexeme(format!("{}{}", first, second).as_str(), line, None)
         }
         // TODO: easier char to &str conversion?
-        _ => Token::new(first.to_string().as_str(), line, None),
+        _ => Token::new_from_lexeme(first.to_string().as_str(), line, None),
     }
 }
 
+// TODO: refactor match as separate function from peek+while so that functionality can be shared
 fn match_comment(iter: &mut Peekable<CharIndices>, line: i32) -> Option<Token> {
     match iter.peek() {
         Some((_, '/')) => {
@@ -97,7 +98,7 @@ fn match_comment(iter: &mut Peekable<CharIndices>, line: i32) -> Option<Token> {
             }
             None
         }
-        _ => Token::new("/", line, None)
+        _ => Token::new(TokenType::Slash, line, None)
     }
 }
 

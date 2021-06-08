@@ -7,7 +7,21 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(lexeme: &str, line: i32, literal: Option<Literal>) -> Option<Self> {
+    pub fn new(token_type: TokenType, line: i32, literal: Option<Literal>) -> Option<Self> {
+        match get_token_lexeme(token_type.clone()) {
+            Some(lexeme) => {
+                Some(Token {
+                    token_type,
+                    lexeme,
+                    line,
+                    literal
+                })
+            }
+            _ => { None }
+        }
+    }
+
+    pub fn new_from_lexeme(lexeme: &str, line: i32, literal: Option<Literal>) -> Option<Self> {
         match get_token_type(lexeme) {
             Some(t) => {
                 Some(Token {
@@ -48,6 +62,7 @@ pub enum Literal {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -96,6 +111,34 @@ pub enum TokenType {
     While,
 
     EOF,
+}
+
+fn get_token_lexeme(token: TokenType) -> Option<String> {
+    match token {
+        TokenType::LeftParen => Some("(".to_string()),
+        TokenType::RightParen => Some(")".to_string()),
+        TokenType::LeftBrace => Some("{".to_string()),
+        TokenType::RightBrace => Some("}".to_string()),
+        TokenType::Comma => Some(",".to_string()),
+        TokenType::Dot => Some(".".to_string()),
+        TokenType::Minus => Some("-".to_string()),
+        TokenType::Plus => Some("+".to_string()),
+        TokenType::Semicolon => Some(";".to_string()),
+        TokenType::Slash => Some("/".to_string()),
+        TokenType::Star => Some("*".to_string()),
+
+        // One or two character tokens.
+        TokenType::Bang => Some("!".to_string()),
+        TokenType::BangEqual => Some("!=".to_string()),
+        TokenType::Equal => Some("=".to_string()),
+        TokenType::EqualEqual => Some("==".to_string()),
+        TokenType::Greater => Some(">".to_string()),
+        TokenType::GreaterEqual => Some(">=".to_string()),
+        TokenType::Less => Some("<".to_string()),
+        TokenType::LessEqual => Some("<=".to_string()),
+
+        _ => None
+    }
 }
 
 fn get_token_type(lexeme: &str) -> Option<TokenType> {
