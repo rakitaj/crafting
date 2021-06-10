@@ -89,6 +89,16 @@ pub struct SourceCode {
     pub line: usize,
 }
 
+pub fn match_peek(peekable_iter: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> bool {
+    let peek_result = peekable_iter.peek();
+    match peek_result {
+        Some(pr) => {
+            return pr.1 == match_char;
+        },
+        None => return false
+    }
+}
+
 impl SourceCode {
     pub fn new(source: String) -> Self {
         SourceCode {
@@ -98,32 +108,8 @@ impl SourceCode {
         }
     }
 
-    pub fn get(&self) -> Option<char> {
-        self.source.chars().nth(self.index)
-    }
-
-    pub fn peek(&self, n: usize) -> Option<char> {
-        self.source.chars().nth(&self.index + n)
-    }
-
     pub fn get_string(&self, n: usize) -> String {
         self.source[self.index..self.index + n].to_string()
-    }
-
-    pub fn eof(&self) -> bool {
-        match &self.get() {
-            Some(_) => false,
-            None => true,
-        }
-    }
-
-    pub fn advance_to_eol(&mut self) -> () {
-        while let Some(c) = self.get() {
-            match c {
-                '\n' => { self.line += 1; break }
-                _ => self.index += 1
-            }
-        }
     }
 
     pub fn scan_string_literal(&mut self) -> String {
@@ -132,7 +118,8 @@ impl SourceCode {
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
-        while let Some(c) = self.get() {
+        let mut indices = self.source.char_indices().peekable();
+        while let Some((i, c)) = indices.next() {
             match c {
                 ' ' => {},
                 '\t' => {},
@@ -150,38 +137,48 @@ impl SourceCode {
                 ';' => tokens.push(Token::new(TokenType::SemiColon, self.line)),
                 '*' => tokens.push(Token::new(TokenType::Star, self.line)),
                 '/' => {
-                    match self.peek(1) {
-                        Some('/') => { self.advance_to_eol() },
-                        _ => tokens.push(Token::new(TokenType::Slash, self.line))
+                    if match_peek(&mut indices, '/') {
+                        indices.take_while(|x| x.1 != '\n');
+                        self.line +=1 ;
+                    } else {
+                        tokens.push(Token::new(TokenType::Slash, self.line));
                     }
                 },
                 '!' => {
-                    match self.peek(1) {
-                        Some('=') => { tokens.push(Token::new(TokenType::BangEqual, self.line)); self.index += 1; },
-                        _ => tokens.push(Token::new(TokenType::Bang, self.line))
+                    if match_peek(&mut indices, '=') {
+                        tokens.push(Token::new(TokenType::BangEqual, self.line)); 
+                        self.index += 1;
+                    } else {
+                        tokens.push(Token::new(TokenType::Bang, self.line));
                     }
                 },
                 '=' => {
-                    match self.peek(1) {
-                        Some('=') => { tokens.push(Token::new(TokenType::EqualEqual, self.line)); self.index += 1; },
-                        _ => tokens.push(Token::new(TokenType::Equal, self.line))
+                    if match_peek(&mut indices, '=') {
+                        tokens.push(Token::new(TokenType::EqualEqual, self.line)); 
+                        self.index += 1; 
+                    } else {
+                        tokens.push(Token::new(TokenType::Equal, self.line));
                     }
                 },
                 '<' => {
-                    match self.peek(1) {
-                        Some('=') => { tokens.push(Token::new(TokenType::LessEqual, self.line)); self.index += 1; },
-                        _ => tokens.push(Token::new(TokenType::Less, self.line))
+                    if match_peek(&mut indices, '=') {
+                        tokens.push(Token::new(TokenType::LessEqual, self.line)); 
+                        self.index += 1; 
+                    } else {
+                        tokens.push(Token::new(TokenType::Less, self.line))
                     }
                 },
                 '>' => {
-                    match self.peek(1) {
-                        Some('=') => { tokens.push(Token::new(TokenType::GreaterEqual, self.line)); self.index += 1; },
-                        _ => tokens.push(Token::new(TokenType::Greater, self.line))
+                    if match_peek(&mut indices, '=') {
+                        tokens.push(Token::new(TokenType::GreaterEqual, self.line)); 
+                        self.index += 1; 
+                    } else {
+                        tokens.push(Token::new(TokenType::Greater, self.line));
                     }
                 },
                 '"' => {
-                    let string_literal = self.scan_string_literal();
-                    tokens.push(Token::new(TokenType::String(string_literal), self.line));
+                    // let string_literal = self.scan_string_literal();
+                    // tokens.push(Token::new(TokenType::String(string_literal), self.line));
                 },
                 _ => {},
             }
@@ -208,19 +205,6 @@ mod tests {
         assert_ne!(
             TokenType::String("Hello world!".to_string()), 
             TokenType::String("Hello not world!".to_string()));
-    }
-
-    #[test]
-    fn test_eof_false() {
-        let source = SourceCode::new("main() { return 0; }".to_string());
-        assert_eq!(source.eof(), false);
-    }
-
-    #[test]
-    fn test_eof_true() {
-        let mut source = SourceCode::new("main() { return 0; }".to_string());
-        source.index = 40;
-        assert_eq!(source.eof(), true);
     }
 
     #[test]
