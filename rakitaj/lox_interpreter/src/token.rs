@@ -85,7 +85,6 @@ impl fmt::Display for Token {
 
 pub struct SourceCode {
     pub source: String,
-    pub index: usize,
     pub line: usize,
 }
 
@@ -103,13 +102,12 @@ impl SourceCode {
     pub fn new(source: String) -> Self {
         SourceCode {
             source: source,
-            index: 0,
             line: 1,
         }
     }
 
-    pub fn get_string(&self, n: usize) -> String {
-        self.source[self.index..self.index + n].to_string()
+    pub fn get_string(&self, start: usize, length: usize) -> String {
+        self.source[start..start + length].to_string()
     }
 
     pub fn scan_string_literal(&mut self) -> String {
@@ -138,7 +136,8 @@ impl SourceCode {
                 '*' => tokens.push(Token::new(TokenType::Star, self.line)),
                 '/' => {
                     if match_peek(&mut indices, '/') {
-                        indices.take_while(|x| x.1 != '\n');
+                        indices.next();
+                        let _ = indices.by_ref().take_while(|x| x.1 != '\n');
                         self.line +=1 ;
                     } else {
                         tokens.push(Token::new(TokenType::Slash, self.line));
@@ -146,8 +145,8 @@ impl SourceCode {
                 },
                 '!' => {
                     if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::BangEqual, self.line)); 
-                        self.index += 1;
+                        tokens.push(Token::new(TokenType::BangEqual, self.line));
+                        indices.next();
                     } else {
                         tokens.push(Token::new(TokenType::Bang, self.line));
                     }
@@ -155,7 +154,7 @@ impl SourceCode {
                 '=' => {
                     if match_peek(&mut indices, '=') {
                         tokens.push(Token::new(TokenType::EqualEqual, self.line)); 
-                        self.index += 1; 
+                        indices.next();
                     } else {
                         tokens.push(Token::new(TokenType::Equal, self.line));
                     }
@@ -163,7 +162,7 @@ impl SourceCode {
                 '<' => {
                     if match_peek(&mut indices, '=') {
                         tokens.push(Token::new(TokenType::LessEqual, self.line)); 
-                        self.index += 1; 
+                        indices.next();
                     } else {
                         tokens.push(Token::new(TokenType::Less, self.line))
                     }
@@ -171,7 +170,7 @@ impl SourceCode {
                 '>' => {
                     if match_peek(&mut indices, '=') {
                         tokens.push(Token::new(TokenType::GreaterEqual, self.line)); 
-                        self.index += 1; 
+                        indices.next();
                     } else {
                         tokens.push(Token::new(TokenType::Greater, self.line));
                     }
@@ -182,7 +181,6 @@ impl SourceCode {
                 },
                 _ => {},
             }
-            self.index += 1;
         }
         tokens.push(Token::new(TokenType::Eof, self.line));
         return tokens;
