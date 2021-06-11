@@ -88,8 +88,8 @@ pub struct SourceCode {
     pub line: usize,
 }
 
-pub fn match_peek(peekable_iter: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> bool {
-    let peek_result = peekable_iter.peek();
+pub fn match_peek(indices: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> bool {
+    let peek_result = indices.peek();
     match peek_result {
         Some(pr) => {
             return pr.1 == match_char;
@@ -97,6 +97,12 @@ pub fn match_peek(peekable_iter: &mut std::iter::Peekable<std::str::CharIndices>
         None => return false
     }
 }
+
+
+pub fn scan_string_literal(indices: &mut std::iter::Peekable<std::str::CharIndices>) -> String {
+    "foo".to_string()
+}
+
 
 impl SourceCode {
     pub fn new(source: String) -> Self {
@@ -106,13 +112,22 @@ impl SourceCode {
         }
     }
 
-    pub fn get_string(&self, start: usize, length: usize) -> String {
-        self.source[start..start + length].to_string()
-    }
-
-    pub fn scan_string_literal(&mut self) -> String {
-        "foo".to_string()
-    }
+    pub fn peek_match_and_add(
+        &self,
+        indices: &mut std::iter::Peekable<std::str::CharIndices>, 
+        match_char: char,
+        match_token_type: TokenType,
+        not_match_token_type: TokenType,
+        tokens: &mut Vec<Token>
+        ) -> () {
+            let peek_matches = match_peek(indices, match_char);
+            if peek_matches {
+                tokens.push(Token::new(match_token_type, self.line));
+                indices.next();
+            } else {
+                tokens.push(Token::new(not_match_token_type, self.line));
+            }
+        }
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
@@ -121,9 +136,7 @@ impl SourceCode {
             match c {
                 ' ' => {},
                 '\t' => {},
-                '\n' => {
-                    self.line += 1;
-                }
+                '\n' => self.line += 1,
                 '(' => tokens.push(Token::new(TokenType::LeftParen, self.line)),
                 ')' => tokens.push(Token::new(TokenType::RightParen, self.line)),
                 '{' => tokens.push(Token::new(TokenType::LeftBrace, self.line)),
@@ -143,42 +156,11 @@ impl SourceCode {
                         tokens.push(Token::new(TokenType::Slash, self.line));
                     }
                 },
-                '!' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::BangEqual, self.line));
-                        indices.next();
-                    } else {
-                        tokens.push(Token::new(TokenType::Bang, self.line));
-                    }
-                },
-                '=' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::EqualEqual, self.line)); 
-                        indices.next();
-                    } else {
-                        tokens.push(Token::new(TokenType::Equal, self.line));
-                    }
-                },
-                '<' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::LessEqual, self.line)); 
-                        indices.next();
-                    } else {
-                        tokens.push(Token::new(TokenType::Less, self.line))
-                    }
-                },
-                '>' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::GreaterEqual, self.line)); 
-                        indices.next();
-                    } else {
-                        tokens.push(Token::new(TokenType::Greater, self.line));
-                    }
-                },
-                '"' => {
-                    // let string_literal = self.scan_string_literal();
-                    // tokens.push(Token::new(TokenType::String(string_literal), self.line));
-                },
+                '!' => self.peek_match_and_add(&mut indices, '=', TokenType::BangEqual, TokenType::Bang, &mut tokens),
+                '=' => self.peek_match_and_add(&mut indices, '=', TokenType::EqualEqual, TokenType::Equal, &mut tokens),
+                '<' => self.peek_match_and_add(&mut indices, '=', TokenType::LessEqual, TokenType::Less, &mut tokens),
+                '>' => self.peek_match_and_add(&mut indices, '=', TokenType::GreaterEqual, TokenType::Greater, &mut tokens),
+                '"' => tokens.push(Token::new(TokenType::String(scan_string_literal(&mut indices)), self.line)),
                 _ => {},
             }
         }
