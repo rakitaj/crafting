@@ -1,9 +1,10 @@
-use std::env;
-use std::fs;
-
 mod iter_extensions;
 mod scan;
 mod token;
+mod ast;
+
+use std::env;
+use std::fs;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
