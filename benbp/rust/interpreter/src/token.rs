@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 pub struct Token {
     pub token_type: TokenType,
@@ -59,6 +61,16 @@ pub enum Literal {
     NumberLiteral(f64),
     StringLiteral(String),
     IdentifierLiteral(String),
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Literal::NumberLiteral(n) => { write!(f, "{}", n) }
+            Literal::StringLiteral(s) => { write!(f, "{}", s) }
+            Literal::IdentifierLiteral(i) => { write!(f, "{}", i) }
+        }
+    }
 }
 
 #[derive(Debug)]
