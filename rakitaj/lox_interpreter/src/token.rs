@@ -98,6 +98,16 @@ pub fn match_peek(indices: &mut std::iter::Peekable<std::str::CharIndices>, matc
     }
 }
 
+fn take_until(indices: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> usize {
+    let mut count = 0;
+    while let Some(c) = indices.next() {
+        count += 1;
+        if c.1 == match_char {
+            break;
+        }
+    }
+    return count;
+}
 
 pub fn scan_string_literal(indices: &mut std::iter::Peekable<std::str::CharIndices>) -> String {
     "foo".to_string()
@@ -149,8 +159,7 @@ impl SourceCode {
                 '*' => tokens.push(Token::new(TokenType::Star, self.line)),
                 '/' => {
                     if match_peek(&mut indices, '/') {
-                        indices.next();
-                        let _ = indices.by_ref().take_while(|x| x.1 != '\n');
+                        take_until(&mut indices, '\n');
                         self.line +=1 ;
                     } else {
                         tokens.push(Token::new(TokenType::Slash, self.line));
@@ -168,7 +177,6 @@ impl SourceCode {
         return tokens;
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -224,5 +232,14 @@ mod tests {
             Token::new(TokenType::EqualEqual, 1),
             Token::new(TokenType::Bang, 2),
             Token::new(TokenType::Eof, 2)]);
+    }
+
+    #[test]
+    fn test_scan_string_literal() {
+        let mut source = SourceCode::new("\"Hello world!\"".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::String("Hello world!".to_string()), 1)
+        ]);
     }
 }
