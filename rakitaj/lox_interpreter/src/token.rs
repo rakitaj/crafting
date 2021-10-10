@@ -331,4 +331,18 @@ mod tests {
             Token::new(TokenType::Eof, 1)
         ]);
     }
+
+    #[test]
+    fn test_hello_world_line() {
+        let mut source = SourceCode::new("var string = \"Hello world!\";".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::Var, 1),
+            Token::new(TokenType::Identifier("string".to_string()), 1),
+            Token::new(TokenType::Equal, 1),
+            Token::new(TokenType::String("Hello world!".to_string()), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
+    }
 }
