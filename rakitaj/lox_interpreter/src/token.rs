@@ -1,6 +1,8 @@
 use std::fmt;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -112,6 +114,37 @@ pub fn scan_number(initial_char: char, indices: &mut std::iter::Peekable<std::st
     return floats.iter().collect::<String>().parse::<f32>().unwrap();
 }
 
+pub fn is_valid_for_identifier(c: char) -> bool {
+    match c {
+        'a' ..= 'z' | 'A' ..= 'Z' => true,
+        '0' ..= '9' => true,
+        '_' | '?' => true,
+        _ => false
+    }
+}
+
+pub fn identifier_or_keyword_to_tokentype(identifier: String) -> TokenType {
+    match identifier.as_str() {
+        "and" => TokenType::And,
+        "class" => TokenType::Class,
+        "else" => TokenType::Else,
+        "false" => TokenType::False,
+        "fun" => TokenType::Fun,
+        "for" => TokenType::For,
+        "if" => TokenType::If,
+        "nil" => TokenType::Nil,
+        "or" => TokenType::Or,
+        "print" => TokenType::Print,
+        "return" => TokenType::Return,
+        "super" => TokenType::Super,
+        "this" => TokenType::This,
+        "true" => TokenType::True,
+        "var" => TokenType::Var,
+        "while" => TokenType::While,
+        _ => TokenType::Identifier(identifier),
+    }
+}
+
 impl SourceCode {
     pub fn new(source: String) -> Self {
         SourceCode {
@@ -172,10 +205,20 @@ impl SourceCode {
                     tokens.push(Token::new(TokenType::Number(number), self.line));
                 },
                 '"' => {
-                    let string_literal_as_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| x.1 != '"').collect();
-                    let string_literal: String = string_literal_as_chars.into_iter().map(|x| { x.1 }).collect();
+                    let string_as_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| x.1 != '"').collect();
+                    let string_literal: String = string_as_chars.into_iter().map(|x| { x.1 }).collect();
                     tokens.push(Token::new(TokenType::String(string_literal), self.line))
                 },
+                'a' ..= 'z' | 'A' ..= 'Z' | '_' => {
+                    // Handle either an identifier or keyword.
+                    // Read all the chars needed to determine if the token is a keyword or identifier.
+                    let mut ambiguous_token = vec![c];
+                    let rest_of_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| is_valid_for_identifier(x.1)).collect();
+                    ambiguous_token.extend(rest_of_chars.into_iter().map(|x| x.1));
+
+                    let token_type = identifier_or_keyword_to_tokentype(ambiguous_token.into_iter().collect());
+                    tokens.push(Token::new(token_type, self.line));
+                }
                 _ => {},
             }
         }
