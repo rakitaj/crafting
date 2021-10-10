@@ -98,20 +98,9 @@ pub fn match_peek(indices: &mut std::iter::Peekable<std::str::CharIndices>, matc
     }
 }
 
-fn take_until(indices: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> usize {
-    let mut count = 0;
-    while let Some(c) = indices.next() {
-        count += 1;
-        if c.1 == match_char {
-            break;
-        }
-    }
-    return count;
-}
-
-pub fn scan_string_literal(indices: &mut std::iter::Peekable<std::str::CharIndices>) -> String {
-    "foo".to_string()
-}
+// pub fn scan_string_literal(indices: &mut std::iter::Peekable<std::str::CharIndices>) -> String {
+//     "foo".to_string()
+// }
 
 
 impl SourceCode {
@@ -159,7 +148,7 @@ impl SourceCode {
                 '*' => tokens.push(Token::new(TokenType::Star, self.line)),
                 '/' => {
                     if match_peek(&mut indices, '/') {
-                        take_until(&mut indices, '\n');
+                        indices.by_ref().skip_while(|x| x.1 != '\n').next();
                         self.line +=1 ;
                     } else {
                         tokens.push(Token::new(TokenType::Slash, self.line));
@@ -169,7 +158,11 @@ impl SourceCode {
                 '=' => self.peek_match_and_add(&mut indices, '=', TokenType::EqualEqual, TokenType::Equal, &mut tokens),
                 '<' => self.peek_match_and_add(&mut indices, '=', TokenType::LessEqual, TokenType::Less, &mut tokens),
                 '>' => self.peek_match_and_add(&mut indices, '=', TokenType::GreaterEqual, TokenType::Greater, &mut tokens),
-                '"' => tokens.push(Token::new(TokenType::String(scan_string_literal(&mut indices)), self.line)),
+                '"' => {
+                    let string_literal_as_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| x.1 != '"').collect();
+                    let string_literal: String = string_literal_as_chars.into_iter().map(|x| { x.1 }).collect();
+                    tokens.push(Token::new(TokenType::String(string_literal), self.line))
+                },
                 _ => {},
             }
         }
@@ -207,7 +200,20 @@ mod tests {
     }
 
     #[rstest]
+    #[case("(", vec![Token::new(TokenType::LeftParen, 1)])]
+    #[case(")", vec![Token::new(TokenType::RightParen, 1)])]
+    #[case("{", vec![Token::new(TokenType::LeftBrace, 1)])]
+    #[case("}", vec![Token::new(TokenType::RightBrace, 1)])]
+
+    #[case(",", vec![Token::new(TokenType::Comma, 1)])]
+    #[case(".", vec![Token::new(TokenType::Dot, 1)])]
+    #[case("-", vec![Token::new(TokenType::Minus, 1)])]
     #[case("+", vec![Token::new(TokenType::Plus, 1)])]
+    #[case(";", vec![Token::new(TokenType::SemiColon, 1)])]
+    #[case("/", vec![Token::new(TokenType::Slash, 1)])]
+    #[case("*", vec![Token::new(TokenType::Star, 1)])]
+
+
     #[case("!=", vec![Token::new(TokenType::BangEqual, 1)])]
     #[case("!", vec![Token::new(TokenType::Bang, 1)])]
     #[case("==", vec![Token::new(TokenType::EqualEqual, 1)])]
@@ -225,21 +231,24 @@ mod tests {
 
     #[test]
     fn test_scan_tokens_comment() {
-        let mut source = SourceCode::new("+ == // **\n!".to_string());
+        let mut source = SourceCode::new("+ == // **\n!!".to_string());
         let tokens = source.scan_tokens();
         assert_eq!(tokens, vec![
             Token::new(TokenType::Plus, 1),
             Token::new(TokenType::EqualEqual, 1),
+            Token::new(TokenType::Bang, 2),
             Token::new(TokenType::Bang, 2),
             Token::new(TokenType::Eof, 2)]);
     }
 
     #[test]
     fn test_scan_string_literal() {
-        let mut source = SourceCode::new("\"Hello world!\"".to_string());
+        let mut source = SourceCode::new("\"Hello world!\";".to_string());
         let tokens = source.scan_tokens();
         assert_eq!(tokens, vec![
-            Token::new(TokenType::String("Hello world!".to_string()), 1)
+            Token::new(TokenType::String("Hello world!".to_string()), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
         ]);
     }
 }
