@@ -46,7 +46,7 @@ pub enum TokenType {
     This,
     True,
     Var,
-    WHile,
+    While,
 
     Eof,
 }
@@ -98,10 +98,19 @@ pub fn match_peek(indices: &mut std::iter::Peekable<std::str::CharIndices>, matc
     }
 }
 
-// pub fn scan_string_literal(indices: &mut std::iter::Peekable<std::str::CharIndices>) -> String {
-//     "foo".to_string()
-// }
-
+pub fn scan_number(initial_char: char, indices: &mut std::iter::Peekable<std::str::CharIndices>) -> f32 {
+    let mut floats: Vec<char> = vec![initial_char];
+    while let Some(pair) = indices.peek() {
+        match pair {
+            (.., '0' ..= '9' | '.') => {
+                floats.push(pair.1);
+                indices.next();
+            },
+            _ => break
+        }
+    }
+    return floats.iter().collect::<String>().parse::<f32>().unwrap();
+}
 
 impl SourceCode {
     pub fn new(source: String) -> Self {
@@ -158,6 +167,10 @@ impl SourceCode {
                 '=' => self.peek_match_and_add(&mut indices, '=', TokenType::EqualEqual, TokenType::Equal, &mut tokens),
                 '<' => self.peek_match_and_add(&mut indices, '=', TokenType::LessEqual, TokenType::Less, &mut tokens),
                 '>' => self.peek_match_and_add(&mut indices, '=', TokenType::GreaterEqual, TokenType::Greater, &mut tokens),
+                '0' ..= '9' => {
+                    let number = scan_number(c, &mut indices);
+                    tokens.push(Token::new(TokenType::Number(number), self.line));
+                },
                 '"' => {
                     let string_literal_as_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| x.1 != '"').collect();
                     let string_literal: String = string_literal_as_chars.into_iter().map(|x| { x.1 }).collect();
@@ -243,10 +256,34 @@ mod tests {
 
     #[test]
     fn test_scan_string_literal() {
-        let mut source = SourceCode::new("\"Hello world!\";".to_string());
+        let mut source = SourceCode::new("\"Hello world!\" ;".to_string());
         let tokens = source.scan_tokens();
         assert_eq!(tokens, vec![
             Token::new(TokenType::String("Hello world!".to_string()), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
+    }
+
+    #[test]
+    fn test_scan_number_literal() {
+        let mut source = SourceCode::new("\"string 123.0\" 123.0;".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::String("string 123.0".to_string()), 1),
+            Token::new(TokenType::Number(123.0), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
+    }
+
+    #[test]
+    fn test_scan_number_literal_2() {
+        let mut source = SourceCode::new("123.0\"string 123.0\" ;".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::Number(123.0), 1),
+            Token::new(TokenType::String("string 123.0".to_string()), 1),
             Token::new(TokenType::SemiColon, 1),
             Token::new(TokenType::Eof, 1)
         ]);
