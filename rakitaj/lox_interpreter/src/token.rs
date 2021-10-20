@@ -1,6 +1,7 @@
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -46,7 +47,7 @@ pub enum TokenType {
     This,
     True,
     Var,
-    WHile,
+    While,
 
     Eof,
 }
@@ -85,12 +86,11 @@ impl fmt::Display for Token {
 
 pub struct SourceCode {
     pub source: String,
-    pub index: usize,
     pub line: usize,
 }
 
-pub fn match_peek(peekable_iter: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> bool {
-    let peek_result = peekable_iter.peek();
+pub fn match_peek(indices: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> bool {
+    let peek_result = indices.peek();
     match peek_result {
         Some(pr) => {
             return pr.1 == match_char;
@@ -99,33 +99,84 @@ pub fn match_peek(peekable_iter: &mut std::iter::Peekable<std::str::CharIndices>
     }
 }
 
+pub fn scan_number(initial_char: char, indices: &mut std::iter::Peekable<std::str::CharIndices>) -> f32 {
+    let mut floats: Vec<char> = vec![initial_char];
+    while let Some(pair) = indices.peek() {
+        match pair {
+            (.., '0' ..= '9' | '.') => {
+                floats.push(pair.1);
+                indices.next();
+            },
+            _ => break
+        }
+    }
+    return floats.iter().collect::<String>().parse::<f32>().unwrap();
+}
+
+pub fn is_valid_for_identifier(c: char) -> bool {
+    match c {
+        'a' ..= 'z' | 'A' ..= 'Z' => true,
+        '0' ..= '9' => true,
+        '_' | '?' => true,
+        _ => false
+    }
+}
+
+pub fn identifier_or_keyword_to_tokentype(identifier: String) -> TokenType {
+    match identifier.as_str() {
+        "and" => TokenType::And,
+        "class" => TokenType::Class,
+        "else" => TokenType::Else,
+        "false" => TokenType::False,
+        "fun" => TokenType::Fun,
+        "for" => TokenType::For,
+        "if" => TokenType::If,
+        "nil" => TokenType::Nil,
+        "or" => TokenType::Or,
+        "print" => TokenType::Print,
+        "return" => TokenType::Return,
+        "super" => TokenType::Super,
+        "this" => TokenType::This,
+        "true" => TokenType::True,
+        "var" => TokenType::Var,
+        "while" => TokenType::While,
+        _ => TokenType::Identifier(identifier),
+    }
+}
+
 impl SourceCode {
     pub fn new(source: String) -> Self {
         SourceCode {
             source: source,
-            index: 0,
             line: 1,
         }
     }
 
-    pub fn get_string(&self, n: usize) -> String {
-        self.source[self.index..self.index + n].to_string()
-    }
-
-    pub fn scan_string_literal(&mut self) -> String {
-        "foo".to_string()
-    }
+    pub fn peek_match_and_add(
+        &self,
+        indices: &mut std::iter::Peekable<std::str::CharIndices>, 
+        match_char: char,
+        match_token_type: TokenType,
+        not_match_token_type: TokenType,
+        tokens: &mut Vec<Token>
+    ) -> () {
+            let peek_matches = match_peek(indices, match_char);
+            if peek_matches {
+                tokens.push(Token::new(match_token_type, self.line));
+                indices.next();
+            } else {
+                tokens.push(Token::new(not_match_token_type, self.line));
+            }
+        }
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut indices = self.source.char_indices().peekable();
-        while let Some((i, c)) = indices.next() {
+        while let Some((_i, c)) = indices.next() {
             match c {
                 ' ' => {},
                 '\t' => {},
-                '\n' => {
-                    self.line += 1;
-                }
+                '\n' => self.line += 1,
                 '(' => tokens.push(Token::new(TokenType::LeftParen, self.line)),
                 ')' => tokens.push(Token::new(TokenType::RightParen, self.line)),
                 '{' => tokens.push(Token::new(TokenType::LeftBrace, self.line)),
@@ -138,57 +189,42 @@ impl SourceCode {
                 '*' => tokens.push(Token::new(TokenType::Star, self.line)),
                 '/' => {
                     if match_peek(&mut indices, '/') {
-                        indices.take_while(|x| x.1 != '\n');
+                        indices.by_ref().skip_while(|x| x.1 != '\n').next();
                         self.line +=1 ;
                     } else {
                         tokens.push(Token::new(TokenType::Slash, self.line));
                     }
                 },
-                '!' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::BangEqual, self.line)); 
-                        self.index += 1;
-                    } else {
-                        tokens.push(Token::new(TokenType::Bang, self.line));
-                    }
-                },
-                '=' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::EqualEqual, self.line)); 
-                        self.index += 1; 
-                    } else {
-                        tokens.push(Token::new(TokenType::Equal, self.line));
-                    }
-                },
-                '<' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::LessEqual, self.line)); 
-                        self.index += 1; 
-                    } else {
-                        tokens.push(Token::new(TokenType::Less, self.line))
-                    }
-                },
-                '>' => {
-                    if match_peek(&mut indices, '=') {
-                        tokens.push(Token::new(TokenType::GreaterEqual, self.line)); 
-                        self.index += 1; 
-                    } else {
-                        tokens.push(Token::new(TokenType::Greater, self.line));
-                    }
+                '!' => self.peek_match_and_add(&mut indices, '=', TokenType::BangEqual, TokenType::Bang, &mut tokens),
+                '=' => self.peek_match_and_add(&mut indices, '=', TokenType::EqualEqual, TokenType::Equal, &mut tokens),
+                '<' => self.peek_match_and_add(&mut indices, '=', TokenType::LessEqual, TokenType::Less, &mut tokens),
+                '>' => self.peek_match_and_add(&mut indices, '=', TokenType::GreaterEqual, TokenType::Greater, &mut tokens),
+                '0' ..= '9' => {
+                    let number = scan_number(c, &mut indices);
+                    tokens.push(Token::new(TokenType::Number(number), self.line));
                 },
                 '"' => {
-                    // let string_literal = self.scan_string_literal();
-                    // tokens.push(Token::new(TokenType::String(string_literal), self.line));
+                    let string_as_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| x.1 != '"').collect();
+                    let string_literal: String = string_as_chars.into_iter().map(|x| { x.1 }).collect();
+                    tokens.push(Token::new(TokenType::String(string_literal), self.line))
                 },
+                'a' ..= 'z' | 'A' ..= 'Z' | '_' => {
+                    // Handle either an identifier or keyword.
+                    // Read all the chars needed to determine if the token is a keyword or identifier.
+                    let mut ambiguous_token = vec![c];
+                    let rest_of_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| is_valid_for_identifier(x.1)).collect();
+                    ambiguous_token.extend(rest_of_chars.into_iter().map(|x| x.1));
+
+                    let token_type = identifier_or_keyword_to_tokentype(ambiguous_token.into_iter().collect());
+                    tokens.push(Token::new(token_type, self.line));
+                }
                 _ => {},
             }
-            self.index += 1;
         }
         tokens.push(Token::new(TokenType::Eof, self.line));
         return tokens;
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -219,7 +255,20 @@ mod tests {
     }
 
     #[rstest]
+    #[case("(", vec![Token::new(TokenType::LeftParen, 1)])]
+    #[case(")", vec![Token::new(TokenType::RightParen, 1)])]
+    #[case("{", vec![Token::new(TokenType::LeftBrace, 1)])]
+    #[case("}", vec![Token::new(TokenType::RightBrace, 1)])]
+
+    #[case(",", vec![Token::new(TokenType::Comma, 1)])]
+    #[case(".", vec![Token::new(TokenType::Dot, 1)])]
+    #[case("-", vec![Token::new(TokenType::Minus, 1)])]
     #[case("+", vec![Token::new(TokenType::Plus, 1)])]
+    #[case(";", vec![Token::new(TokenType::SemiColon, 1)])]
+    #[case("/", vec![Token::new(TokenType::Slash, 1)])]
+    #[case("*", vec![Token::new(TokenType::Star, 1)])]
+
+
     #[case("!=", vec![Token::new(TokenType::BangEqual, 1)])]
     #[case("!", vec![Token::new(TokenType::Bang, 1)])]
     #[case("==", vec![Token::new(TokenType::EqualEqual, 1)])]
@@ -237,12 +286,62 @@ mod tests {
 
     #[test]
     fn test_scan_tokens_comment() {
-        let mut source = SourceCode::new("+ == // **\n!".to_string());
+        let mut source = SourceCode::new("+ == // **\n!!".to_string());
         let tokens = source.scan_tokens();
         assert_eq!(tokens, vec![
             Token::new(TokenType::Plus, 1),
             Token::new(TokenType::EqualEqual, 1),
             Token::new(TokenType::Bang, 2),
+            Token::new(TokenType::Bang, 2),
             Token::new(TokenType::Eof, 2)]);
+    }
+
+    #[test]
+    fn test_scan_string_literal() {
+        let mut source = SourceCode::new("\"Hello world!\" ;".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::String("Hello world!".to_string()), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
+    }
+
+    #[test]
+    fn test_scan_number_literal() {
+        let mut source = SourceCode::new("\"string 123.0\" 123.0;".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::String("string 123.0".to_string()), 1),
+            Token::new(TokenType::Number(123.0), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
+    }
+
+    #[test]
+    fn test_scan_number_literal_2() {
+        let mut source = SourceCode::new("123.0\"string 123.0\" ;".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::Number(123.0), 1),
+            Token::new(TokenType::String("string 123.0".to_string()), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
+    }
+
+    #[test]
+    fn test_hello_world_line() {
+        let mut source = SourceCode::new("var string = \"Hello world!\";".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::Var, 1),
+            Token::new(TokenType::Identifier("string".to_string()), 1),
+            Token::new(TokenType::Equal, 1),
+            Token::new(TokenType::String("Hello world!".to_string()), 1),
+            Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
     }
 }
