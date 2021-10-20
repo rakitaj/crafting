@@ -159,7 +159,7 @@ impl SourceCode {
         match_token_type: TokenType,
         not_match_token_type: TokenType,
         tokens: &mut Vec<Token>
-        ) -> () {
+    ) -> () {
             let peek_matches = match_peek(indices, match_char);
             if peek_matches {
                 tokens.push(Token::new(match_token_type, self.line));
