@@ -1,5 +1,4 @@
 use std::fmt;
-use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 #[derive(Clone)]
@@ -173,7 +172,7 @@ impl SourceCode {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut indices = self.source.char_indices().peekable();
-        while let Some((i, c)) = indices.next() {
+        while let Some((_i, c)) = indices.next() {
             match c {
                 ' ' => {},
                 '\t' => {},
