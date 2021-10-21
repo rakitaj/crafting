@@ -3,8 +3,9 @@ use std::fs;
 use std::io;
 use std::io::prelude::*;
 
-mod token;
-use token::SourceCode;
+mod tokens;
+mod scanner;
+use scanner::SourceCode;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
