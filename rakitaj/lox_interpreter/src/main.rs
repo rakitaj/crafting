@@ -5,18 +5,23 @@ use std::io::prelude::*;
 
 mod tokens;
 mod scanner;
+mod ast;
 use scanner::SourceCode;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() == 0 || args[0] == "/?" || args[0] == "--help" || args[0] == "-?" {
-        println!("Usage: jlox [script]")
-    } else if args.len() == 1 && args[0] == "prompt" {
+    args.iter().for_each(|arg| println!("Argument: {}", arg));
+    // Rust includes the path of the exe as the default 0th arg.
+    if args.len() == 1 || args[1] == "/?" || args[1] == "--help" || args[1] == "-?" {
+        println!("Execure script          : rlox [script]");
+        println!("Start interactive prompt: prompt");
+    } else if args.len() == 2 && args[1] == "prompt" {
         run_prompt();
-    } else if args.len() == 1 {
-        run_file(&args[0]);
+    } else if args.len() == 3 && args[1] == "rlox" {
+        run_file(&args[2]);
+    } else {
+        println!("Can't understand your args")
     }
-    
 }
 
 fn run_file(filepath: &str) -> () {
