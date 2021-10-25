@@ -13,15 +13,20 @@ fn main() {
     args.iter().for_each(|arg| println!("Argument: {}", arg));
     // Rust includes the path of the exe as the default 0th arg.
     if args.len() == 1 || args[1] == "/?" || args[1] == "--help" || args[1] == "-?" {
-        println!("Execure script          : rlox [script]");
-        println!("Start interactive prompt: prompt");
+        print_help();
     } else if args.len() == 2 && args[1] == "prompt" {
         run_prompt();
     } else if args.len() == 3 && args[1] == "rlox" {
         run_file(&args[2]);
     } else {
-        println!("Can't understand your args")
+        println!("Can't understand your args");
+        print_help();
     }
+}
+
+fn print_help() {
+    println!("Execute script          : rlox [script]");
+    println!("Start interactive prompt: prompt");
 }
 
 fn run_file(filepath: &str) -> () {

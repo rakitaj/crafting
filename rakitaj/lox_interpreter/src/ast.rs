@@ -1,28 +1,21 @@
+// Questions
+// 1. How do I represent a tree of different types in rust?
+
 use crate::tokens::TokenType;
 
 pub enum Expr {
-    Binary,
-    Grouping,
-    Literal,
-    Unary
+    Binary(Box<Expr>, TokenType, Box<Expr>),
+    Grouping(Box<Expr>),
+    LiteralBool(bool),
+    LiteralNumber(f32),
+    LiteralNull,
+    LiteralString(String),
+    Unary(TokenType, Box<Expr>)
 }
 
-pub struct BinaryExpr {
-    left: Expr,
-    operator: TokenType,
-    right: Expr
+pub struct Ast {
+    node: Expr
 }
 
-pub struct GroupingExpr {
-    expression: Expr
-}
 
-pub struct LiteralExpr<T> {
-    value: T
-}
-
-pub struct UnaryExpr {
-    operator: TokenType,
-    right: Expr
-}
 
