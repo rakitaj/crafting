@@ -1,37 +1,5 @@
-use std::fmt;
 use crate::tokens::TokenType;
-
-impl fmt::Display for TokenType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Token {
-    token_type: TokenType,
-    line: usize
-}
-
-impl Token {
-    pub fn new(
-        token_type: TokenType,
-        line: usize
-    ) -> Self {
-        Token {
-            token_type: token_type,
-            line: line
-        }
-    }
-}
-
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f, "{} {}", &self.token_type, &self.line
-        )
-    }
-}
+use crate::tokens::Token;
 
 pub struct SourceCode {
     pub source: String,
