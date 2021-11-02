@@ -16,15 +16,14 @@ pub struct Ast {
 
 fn print_ast(ast: Ast) -> Vec<String> {
     let mut result: Vec<String> = Vec::new();
-    // print_ast_helper(Some(&ast.node), &result);
+    print_ast_helper(Some(&ast.node), &result, "");
     return result;
 }
 
-// fn print_ast_helper(node: Option<&Expr>, mut result: &Vec<String>) {
-//     match node {
-//         Some(expr) => match expr {
-//             Expr::Binary(left, op, right) => format!()
-//         },
-//         None => {}
-//     }
-// }
+fn print_ast_helper(node: &Expr, mut result: &Vec<String>, partial_string: &str) {
+    match node {
+        Expr::Binary(left, op, right) => {
+            print_ast_helper(left, result, "(")
+        }
+    }
+}
