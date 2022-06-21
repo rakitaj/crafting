@@ -8,14 +8,11 @@ pub enum Expr {
     LiteralNil,
     LiteralString(String),
 
-    Grouping(TokenType, Box<Expr>, TokenType),
+    Grouping(Box<Expr>),
 
     Unary(TokenType, Box<Expr>),
-    //UnaryNegateNumber(Box<Expr>),
-    //UnaryLogicalNot(Box<Expr>),
 
     Binary(Box<Expr>, TokenType, Box<Expr>),
-    //BinaryEquals(Box<Expr>, Box<Expr>),
 }
 
 pub struct Ast {
@@ -58,12 +55,17 @@ mod tests {
         ];
         let ast = Ast::new(
             Expr::Binary(
+                Box::new(
+                Expr::Binary(
                     Box::new(
-                    Expr::Grouping(
-                    TokenType::LeftParen, 
-                    Box::new(Expr::Binary(Box::new(Expr::LiteralNumber(1.0)), TokenType::Plus, Box::new(Expr::LiteralNumber(2.0)))),
-                    TokenType::RightParen)),
-                TokenType::Star,
-                Box::new(Expr::LiteralNumber(3.0))));
+                    Expr::Grouping(Box::new(Expr::Binary(
+                        Box::new(Expr::LiteralNumber(1.0)), 
+                        TokenType::Plus, 
+                        Box::new(Expr::LiteralNumber(2.0))
+                    )))),
+                    TokenType::Star,
+                    Box::new(Expr::LiteralNumber(3.0)))),
+                TokenType::EqualEqual,
+                Box::new(Expr::LiteralNumber(9.0))));
     }
 }
