@@ -1,29 +1,69 @@
 use crate::tokens::Token;
+use crate::tokens::TokenType;
+
 
 pub enum Expr {
-    Binary(Box<Expr>, Token, Box<Expr>),
-    Grouping(Box<Expr>),
     LiteralBool(bool),
     LiteralNumber(f32),
-    LiteralNull,
+    LiteralNil,
     LiteralString(String),
-    Unary(Token, Box<Expr>)
+
+    Grouping(TokenType, Box<Expr>, TokenType),
+
+    Unary(TokenType, Box<Expr>),
+    //UnaryNegateNumber(Box<Expr>),
+    //UnaryLogicalNot(Box<Expr>),
+
+    Binary(Box<Expr>, TokenType, Box<Expr>),
+    //BinaryEquals(Box<Expr>, Box<Expr>),
 }
 
 pub struct Ast {
     pub node: Expr
 }
 
-fn print_ast(ast: Ast) -> Vec<String> {
-    let mut result: Vec<String> = Vec::new();
-    print_ast_helper(Some(&ast.node), &result, "");
-    return result;
+impl Ast {
+    pub fn new(expr: Expr) -> Self {
+        Ast {
+            node: expr
+        }
+    }
 }
 
-fn print_ast_helper(node: &Expr, mut result: &Vec<String>, partial_string: &str) {
-    match node {
-        Expr::Binary(left, op, right) => {
-            print_ast_helper(left, result, "(")
-        }
+// pub fn tokens_to_ast(tokens: Vec<Token>) -> Ast {
+//     while !tokens.is_empty() {
+
+//     }
+// }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::*;
+
+    #[test]
+    fn test_simple_expression_to_ast() {
+        // (1 + 2) * 3 == 9
+        let tokens = vec![
+            Token::new(TokenType::LeftParen, 1),
+            Token::new(TokenType::Number(1f32), 1),
+            Token::new(TokenType::Plus, 1),
+            Token::new(TokenType::Number(2f32), 1),
+            Token::new(TokenType::RightParen, 1),
+            Token::new(TokenType::Star, 1),
+            Token::new(TokenType::Number(3f32), 1),
+            Token::new(TokenType::EqualEqual, 1),
+            Token::new(TokenType::Number(9f32), 1),
+            Token::new(TokenType::Eof, 1)
+        ];
+        let ast = Ast::new(
+            Expr::Binary(
+                    Box::new(
+                    Expr::Grouping(
+                    TokenType::LeftParen, 
+                    Box::new(Expr::Binary(Box::new(Expr::LiteralNumber(1.0)), TokenType::Plus, Box::new(Expr::LiteralNumber(2.0)))),
+                    TokenType::RightParen)),
+                TokenType::Star,
+                Box::new(Expr::LiteralNumber(3.0))));
     }
 }

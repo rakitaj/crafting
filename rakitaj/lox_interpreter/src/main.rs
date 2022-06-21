@@ -6,11 +6,7 @@ use std::io::prelude::*;
 mod tokens;
 mod scanner;
 mod ast;
-use ast::Ast;
-use ast::Expr;
 use scanner::SourceCode;
-use tokens::Token;
-use tokens::TokenType;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -80,15 +76,3 @@ fn report(line: usize, location: String, message: String) -> () {
     println!("[line {}] Error {}: {}", line, location, message);
 }
 
-fn create_ast() -> Ast {
-    let root = Ast {
-        node: Expr::Binary(
-            Box::new(Expr::Unary(
-                Token::new(TokenType::Minus, 1),
-                Box::new(Expr::LiteralNumber(123.0)))),
-            Token::new(TokenType::Star, 1),
-            Box::new(Expr::Grouping(Box::new(Expr::LiteralNumber(45.67))))
-        )
-    };
-    return root;
-}

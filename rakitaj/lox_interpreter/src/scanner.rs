@@ -1,12 +1,13 @@
 use crate::tokens::TokenType;
 use crate::tokens::Token;
+use std::iter::Peekable;
 
 pub struct SourceCode {
     pub source: String,
     pub line: usize,
 }
 
-pub fn match_peek(indices: &mut std::iter::Peekable<std::str::CharIndices>, match_char: char) -> bool {
+pub fn match_peek(indices: &mut Peekable<std::str::CharIndices>, match_char: char) -> bool {
     let peek_result = indices.peek();
     match peek_result {
         Some(pr) => {
@@ -16,7 +17,7 @@ pub fn match_peek(indices: &mut std::iter::Peekable<std::str::CharIndices>, matc
     }
 }
 
-pub fn scan_number(initial_char: char, indices: &mut std::iter::Peekable<std::str::CharIndices>) -> f32 {
+pub fn scan_number(initial_char: char, indices: &mut Peekable<std::str::CharIndices>) -> f32 {
     let mut floats: Vec<char> = vec![initial_char];
     while let Some(pair) = indices.peek() {
         match pair {
@@ -71,7 +72,7 @@ impl SourceCode {
 
     pub fn peek_match_and_add(
         &self,
-        indices: &mut std::iter::Peekable<std::str::CharIndices>, 
+        indices: &mut Peekable<std::str::CharIndices>, 
         match_char: char,
         match_token_type: TokenType,
         not_match_token_type: TokenType,
@@ -258,6 +259,24 @@ mod tests {
             Token::new(TokenType::Equal, 1),
             Token::new(TokenType::String("Hello world!".to_string()), 1),
             Token::new(TokenType::SemiColon, 1),
+            Token::new(TokenType::Eof, 1)
+        ]);
+    }
+
+    #[test]
+    fn test_scan_math_expression() {
+        let mut source = SourceCode::new("(1 + 2) * 3 == 9".to_string());
+        let tokens = source.scan_tokens();
+        assert_eq!(tokens, vec![
+            Token::new(TokenType::LeftParen, 1),
+            Token::new(TokenType::Number(1f32), 1),
+            Token::new(TokenType::Plus, 1),
+            Token::new(TokenType::Number(2f32), 1),
+            Token::new(TokenType::RightParen, 1),
+            Token::new(TokenType::Star, 1),
+            Token::new(TokenType::Number(3f32), 1),
+            Token::new(TokenType::EqualEqual, 1),
+            Token::new(TokenType::Number(9f32), 1),
             Token::new(TokenType::Eof, 1)
         ]);
     }
