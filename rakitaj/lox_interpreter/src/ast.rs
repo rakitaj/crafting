@@ -27,16 +27,38 @@ impl Ast {
     }
 }
 
-// pub fn tokens_to_ast(tokens: Vec<Token>) -> Ast {
-//     while !tokens.is_empty() {
-
-//     }
-// }
+pub fn parenthesize(expr: Expr) -> String {
+    match expr {
+        Expr::LiteralBool(value) => match value {
+            true => "true".to_string(),
+            false => "false".to_string()
+        },
+        Expr::LiteralNumber(value) => value.to_string(),
+        Expr::LiteralNil => "nil".to_string(),
+        Expr::LiteralString(value) => value,
+        Expr::Grouping(expr) => format!("(group {})", parenthesize(*expr)),
+        Expr::Unary(token, expr) => format!("({} {})", token, parenthesize(*expr)),
+        Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token, parenthesize(*expr_left), parenthesize(*expr_right)),
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use rstest::*;
+
+    #[test]
+    fn test_parenthesize() {
+        // -123 * (45.67)
+        let root_expr = Expr::Binary(
+            Box::new(Expr::Unary(
+                TokenType::Minus, 
+                Box::new(Expr::LiteralNumber(123.0)))),
+            TokenType::Star,
+            Box::new(Expr::Grouping(Box::new(Expr::LiteralNumber(45.67)))));
+        let result = parenthesize(root_expr);
+        assert_eq!(result, "(* (- 123) (group 45.67))");
+    }
 
     #[test]
     fn test_simple_expression_to_ast() {
