@@ -15,15 +15,37 @@ pub enum Expr {
     Binary(Box<Expr>, TokenType, Box<Expr>),
 }
 
-pub struct Ast {
-    pub node: Expr
+pub struct Parser {
+    tokens: Vec<Token>,
+    current: usize
 }
 
-impl Ast {
-    pub fn new(expr: Expr) -> Self {
-        Ast {
-            node: expr
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Self {
+        Parser { tokens: tokens, current: 0 }
+    }
+
+    fn advance(&mut self) -> Option<Token> {
+
+    }
+
+    fn match_token_type(&self, token_types: &[&TokenType]) -> bool {
+        for token_type in token_types {
+            if check(token_type) {
+                advance();
+                return true;
+            }
         }
+        return false;
+    }
+
+    pub fn expression(&self) -> Expr {
+        self.equality()
+    }
+
+    pub fn equality(&self) -> Expr {
+        let expr: Expr = self.comparison();
+        while 
     }
 }
 
@@ -60,34 +82,34 @@ mod tests {
         assert_eq!(result, "(* (- 123) (group 45.67))");
     }
 
-    #[test]
-    fn test_simple_expression_to_ast() {
-        // (1 + 2) * 3 == 9
-        let tokens = vec![
-            Token::new(TokenType::LeftParen, 1),
-            Token::new(TokenType::Number(1f32), 1),
-            Token::new(TokenType::Plus, 1),
-            Token::new(TokenType::Number(2f32), 1),
-            Token::new(TokenType::RightParen, 1),
-            Token::new(TokenType::Star, 1),
-            Token::new(TokenType::Number(3f32), 1),
-            Token::new(TokenType::EqualEqual, 1),
-            Token::new(TokenType::Number(9f32), 1),
-            Token::new(TokenType::Eof, 1)
-        ];
-        let ast = Ast::new(
-            Expr::Binary(
-                Box::new(
-                Expr::Binary(
-                    Box::new(
-                    Expr::Grouping(Box::new(Expr::Binary(
-                        Box::new(Expr::LiteralNumber(1.0)), 
-                        TokenType::Plus, 
-                        Box::new(Expr::LiteralNumber(2.0))
-                    )))),
-                    TokenType::Star,
-                    Box::new(Expr::LiteralNumber(3.0)))),
-                TokenType::EqualEqual,
-                Box::new(Expr::LiteralNumber(9.0))));
-    }
+    //#[test]
+    // fn test_simple_expression_to_ast() {
+    //     // (1 + 2) * 3 == 9
+    //     let tokens = vec![
+    //         Token::new(TokenType::LeftParen, 1),
+    //         Token::new(TokenType::Number(1f32), 1),
+    //         Token::new(TokenType::Plus, 1),
+    //         Token::new(TokenType::Number(2f32), 1),
+    //         Token::new(TokenType::RightParen, 1),
+    //         Token::new(TokenType::Star, 1),
+    //         Token::new(TokenType::Number(3f32), 1),
+    //         Token::new(TokenType::EqualEqual, 1),
+    //         Token::new(TokenType::Number(9f32), 1),
+    //         Token::new(TokenType::Eof, 1)
+    //     ];
+    //     let ast = Ast::new(
+    //         Expr::Binary(
+    //             Box::new(
+    //             Expr::Binary(
+    //                 Box::new(
+    //                 Expr::Grouping(Box::new(Expr::Binary(
+    //                     Box::new(Expr::LiteralNumber(1.0)), 
+    //                     TokenType::Plus, 
+    //                     Box::new(Expr::LiteralNumber(2.0))
+    //                 )))),
+    //                 TokenType::Star,
+    //                 Box::new(Expr::LiteralNumber(3.0)))),
+    //             TokenType::EqualEqual,
+    //             Box::new(Expr::LiteralNumber(9.0))));
+    // }
 }
