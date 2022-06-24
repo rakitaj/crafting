@@ -3,10 +3,7 @@ use std::fs;
 use std::io;
 use std::io::prelude::*;
 
-mod tokens;
-mod scanner;
-mod ast;
-use scanner::SourceCode;
+use lox_interpreter::scanner::SourceCode;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
