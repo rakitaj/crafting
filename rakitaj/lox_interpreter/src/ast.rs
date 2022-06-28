@@ -44,8 +44,13 @@ impl Parser {
     }
 
     pub fn equality(&self) -> Expr {
-        let expr: Expr = self.comparison();
-        while 
+        let mut expr: Expr = self.comparison();
+        while &self.match_token_type(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
+            let operator: Token = &self.revious();
+            let right: Expr = &self.comparison();
+            expr = Expr::Binary(expr, operator, right);
+        }
+        return expr;
     }
 }
 
