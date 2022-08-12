@@ -65,8 +65,8 @@ impl fmt::Display for TokenType {
 
 #[derive(Debug, PartialEq)]
 pub struct Token {
-    token_type: TokenType,
-    line: usize
+    pub token_type: TokenType,
+    pub line: usize
 }
 
 impl Token {

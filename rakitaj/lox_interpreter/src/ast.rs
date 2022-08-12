@@ -25,33 +25,105 @@ impl Parser {
         Parser { tokens: tokens, current: 0 }
     }
 
-    fn advance(&mut self) -> Option<Token> {
-
+    fn peek(&self) -> Option<Token> {
+        match self.tokens.get(self.current) {
+            Some(token) => Some(*token.clone()),
+            None => None
+        }
     }
 
-    fn match_token_type(&self, token_types: &[&TokenType]) -> bool {
+    fn previous(&self) -> Token {
+        return self.tokens[self.current - 1];
+    }
+
+    fn is_at_end(&self) -> bool {
+        match self.peek() {
+            Some(token) => token.token_type == TokenType::Eof,
+            None => false
+        }
+    }
+
+    fn advance(&mut self) -> Token {
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+        return self.previous();
+    }
+
+    fn check(&self, token_type: &TokenType) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        
+        match self.peek() {
+            Some(token) => token.token_type == *token_type,
+            None => false
+        }
+    }
+
+    fn match_token_type(&self, token_types: &[TokenType]) -> bool {
         for token_type in token_types {
-            if check(token_type) {
-                advance();
+            if self.check(token_type) {
+                self.advance();
                 return true;
             }
         }
         return false;
     }
 
-    pub fn expression(&self) -> Expr {
+    fn expression(&self) -> Expr {
         self.equality()
     }
 
-    pub fn equality(&self) -> Expr {
-        let mut expr: Expr = self.comparison();
-        while &self.match_token_type(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
-            let operator: Token = &self.revious();
-            let right: Expr = &self.comparison();
-            expr = Expr::Binary(expr, operator, right);
+    fn equality(&self) -> Expr {
+        let mut expr = self.comparison();
+        while self.match_token_type(&vec![TokenType::BangEqual, TokenType::EqualEqual]) {
+            let operator = self.previous();
+            let right = self.comparison();
+            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
         }
         return expr;
     }
+
+    fn comparison(&self) -> Expr {
+        let mut expr = self.term();
+        while self.match_token_type(&vec![TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
+            let operator = self.previous();
+            let right = self.term();
+            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
+        }
+        return expr;
+    }
+
+    fn term(&self) -> Expr {
+        let mut expr = self.factor();
+        while self.match_token_type(&vec![TokenType::Plus, TokenType::Minus]) {
+            let operator = self.previous();
+            let right = self.factor();
+            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
+        }
+        return expr;
+    }
+
+    fn factor(&self) -> Expr {
+        let mut expr = self.unary();
+        while self.match_token_type(&vec![TokenType::Slash, TokenType::Star]) {
+            let operator = self.previous();
+            let right = self.unary();
+            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
+        }
+        return expr;
+    }
+
+    fn unary(&self) -> Expr {
+        if self.match_token_type(&vec![TokenType::Bang, TokenType::Minus]) {
+          let operator = self.previous();
+          let right = self.unary();
+          return Expr::Unary(operator.token_type, Box::new(right));
+        }
+    
+        return self.primary();
+      }
 }
 
 pub fn parenthesize(expr: Expr) -> String {
