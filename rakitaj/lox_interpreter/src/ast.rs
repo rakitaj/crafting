@@ -77,7 +77,7 @@ impl Parser {
 
     fn equality(&self) -> Expr {
         let mut expr = self.comparison();
-        while self.match_token_type(&vec![TokenType::BangEqual, TokenType::EqualEqual]) {
+        while self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous();
             let right = self.comparison();
             expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
@@ -87,7 +87,7 @@ impl Parser {
 
     fn comparison(&self) -> Expr {
         let mut expr = self.term();
-        while self.match_token_type(&vec![TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
+        while self.match_token_type(&[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
             let operator = self.previous();
             let right = self.term();
             expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
@@ -97,7 +97,7 @@ impl Parser {
 
     fn term(&self) -> Expr {
         let mut expr = self.factor();
-        while self.match_token_type(&vec![TokenType::Plus, TokenType::Minus]) {
+        while self.match_token_type(&[TokenType::Plus, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.factor();
             expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
@@ -107,7 +107,7 @@ impl Parser {
 
     fn factor(&self) -> Expr {
         let mut expr = self.unary();
-        while self.match_token_type(&vec![TokenType::Slash, TokenType::Star]) {
+        while self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous();
             let right = self.unary();
             expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
@@ -116,14 +116,48 @@ impl Parser {
     }
 
     fn unary(&self) -> Expr {
-        if self.match_token_type(&vec![TokenType::Bang, TokenType::Minus]) {
+        if self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
           let operator = self.previous();
           let right = self.unary();
-          return Expr::Unary(operator.token_type, Box::new(right));
+          return Expr::Unary(operator.token_type, Box::new(right)
+        );
         }
     
         return self.primary();
-      }
+    }
+
+    fn primary(&self) -> Expr {
+        if self.match_token_type(&[TokenType::False]) {
+            return Expr::LiteralBool(false);
+        }
+        if self.match_token_type(&[TokenType::True]) {
+            return Expr::LiteralBool(true);
+        }
+        if self.match_token_type(&[TokenType::Nil]) {
+            return Expr::LiteralNil;
+        }
+        if self.match_token_type(&[TokenType::Number(0.0)]) {
+            match self.tokens[self.current].token_type {
+                TokenType::Number(n) => return Expr::LiteralNumber(n),
+                _ => panic!()
+            }
+        }
+        if self.match_token_type(&[TokenType::String("".to_string())]) {
+            match self.tokens[self.current].token_type {
+                TokenType::String(s) => return Expr::LiteralString(s),
+                _ => panic!()
+            }
+        }
+        if self.match_token_type(&[TokenType::LeftParen]) {
+            let expr = self.expression();
+            self.consume(TokenType::RightParen, "Expect ')' after expression.")
+            return Expr::Grouping(Box::new(expr));
+        }
+        panic!();
+    }
+
+    fn consume(&self, token_type: TokenType, message: &str) {
+    }
 }
 
 pub fn parenthesize(expr: Expr) -> String {
@@ -157,6 +191,23 @@ mod tests {
             Box::new(Expr::Grouping(Box::new(Expr::LiteralNumber(45.67)))));
         let result = parenthesize(root_expr);
         assert_eq!(result, "(* (- 123) (group 45.67))");
+    }
+
+    #[test]
+    fn test_basic_equality_expr() {
+        // true == false
+        let token = &[
+            Token::new(TokenType::True, 1),
+            Token::new(TokenType::EqualEqual, 1),
+            Token::new(TokenType::False, 1),
+            Token::new(TokenType::Eof, 1)
+        ];
+        let expected_ast = Ast::new(
+            Expr::Binary(Box::new(
+                Expr::LiteralBool(true)), 
+                TokenType::EqualEqual, 
+                Box::new(Expr::LiteralBool(false)))
+        );
     }
 
     //#[test]
