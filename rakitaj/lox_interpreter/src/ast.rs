@@ -1,7 +1,7 @@
 use crate::tokens::Token;
 use crate::tokens::TokenType;
 
-
+#[derive(PartialEq, Debug)]
 pub enum Expr {
     LiteralBool(bool),
     LiteralNumber(f32),
@@ -15,6 +15,22 @@ pub enum Expr {
     Binary(Box<Expr>, TokenType, Box<Expr>),
 }
 
+#[derive(PartialEq)]
+pub struct Ast {
+    pub root_expr: Expr
+}
+
+pub enum AstParseError {
+    UnexpectedToken(TokenType, String)
+}
+
+impl Ast {
+    pub fn new(mut parser: Parser) -> Self {
+        let expr = parser.expression();
+        Ast { root_expr: expr }
+    }
+}
+
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize
@@ -25,15 +41,15 @@ impl Parser {
         Parser { tokens: tokens, current: 0 }
     }
 
-    fn peek(&self) -> Option<Token> {
+    fn peek(&self) -> Option<&Token> {
         match self.tokens.get(self.current) {
-            Some(token) => Some(*token.clone()),
+            Some(token) => Some(token),
             None => None
         }
     }
 
-    fn previous(&self) -> Token {
-        return self.tokens[self.current - 1];
+    fn previous(&self) -> &Token {
+        return &self.tokens[self.current - 1];
     }
 
     fn is_at_end(&self) -> bool {
@@ -43,7 +59,7 @@ impl Parser {
         }
     }
 
-    fn advance(&mut self) -> Token {
+    fn advance(&mut self) -> &Token {
         if !self.is_at_end() {
             self.current += 1;
         }
@@ -61,7 +77,7 @@ impl Parser {
         }
     }
 
-    fn match_token_type(&self, token_types: &[TokenType]) -> bool {
+    fn match_token_type(&mut self, token_types: &[TokenType]) -> bool {
         for token_type in token_types {
             if self.check(token_type) {
                 self.advance();
@@ -71,62 +87,62 @@ impl Parser {
         return false;
     }
 
-    fn expression(&self) -> Expr {
+    fn expression(&mut self) -> Expr {
         self.equality()
     }
 
-    fn equality(&self) -> Expr {
+    fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
         while self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
-            let operator = self.previous();
+            let operator = self.previous().token_type.clone();
             let right = self.comparison();
-            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
         return expr;
     }
 
-    fn comparison(&self) -> Expr {
+    fn comparison(&mut self) -> Expr {
         let mut expr = self.term();
         while self.match_token_type(&[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
-            let operator = self.previous();
+            let operator = self.previous().token_type.clone();
             let right = self.term();
-            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
         return expr;
     }
 
-    fn term(&self) -> Expr {
+    fn term(&mut self) -> Expr {
         let mut expr = self.factor();
         while self.match_token_type(&[TokenType::Plus, TokenType::Minus]) {
-            let operator = self.previous();
+            let operator = self.previous().token_type.clone();
             let right = self.factor();
-            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
         return expr;
     }
 
-    fn factor(&self) -> Expr {
+    fn factor(&mut self) -> Expr {
         let mut expr = self.unary();
         while self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
-            let operator = self.previous();
+            let operator = self.previous().token_type.clone();
             let right = self.unary();
-            expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
         return expr;
     }
 
-    fn unary(&self) -> Expr {
+    fn unary(&mut self) -> Expr {
         if self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
-          let operator = self.previous();
+          let operator = self.previous().token_type.clone();
           let right = self.unary();
-          return Expr::Unary(operator.token_type, Box::new(right)
+          return Expr::Unary(operator, Box::new(right)
         );
         }
     
         return self.primary();
     }
 
-    fn primary(&self) -> Expr {
+    fn primary(&mut self) -> Expr {
         if self.match_token_type(&[TokenType::False]) {
             return Expr::LiteralBool(false);
         }
@@ -136,27 +152,33 @@ impl Parser {
         if self.match_token_type(&[TokenType::Nil]) {
             return Expr::LiteralNil;
         }
-        if self.match_token_type(&[TokenType::Number(0.0)]) {
+        if self.match_token_type(&[TokenType::Number(1.0)]) {
             match self.tokens[self.current].token_type {
                 TokenType::Number(n) => return Expr::LiteralNumber(n),
-                _ => panic!()
+                _ => panic!("")
             }
         }
         if self.match_token_type(&[TokenType::String("".to_string())]) {
-            match self.tokens[self.current].token_type {
-                TokenType::String(s) => return Expr::LiteralString(s),
+            match &self.tokens[self.current].token_type {
+                TokenType::String(s) => return Expr::LiteralString(s.to_string()),
                 _ => panic!()
             }
         }
         if self.match_token_type(&[TokenType::LeftParen]) {
             let expr = self.expression();
-            self.consume(TokenType::RightParen, "Expect ')' after expression.")
+            self.consume(&TokenType::RightParen, "Expect ')' after expression.");
             return Expr::Grouping(Box::new(expr));
         }
-        panic!();
+        panic!("Index {index}\nToken type: {token_type}\n", index=self.current, token_type=self.tokens[self.current]);
     }
 
-    fn consume(&self, token_type: TokenType, message: &str) {
+    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<(), AstParseError> {
+        if self.check(token_type) {
+            self.advance();
+            return Ok(());
+        } else {
+            return Err(AstParseError::UnexpectedToken(token_type.clone(), message.to_string()));
+        }
     }
 }
 
@@ -196,48 +218,53 @@ mod tests {
     #[test]
     fn test_basic_equality_expr() {
         // true == false
-        let token = &[
+        let tokens = vec![
             Token::new(TokenType::True, 1),
             Token::new(TokenType::EqualEqual, 1),
             Token::new(TokenType::False, 1),
             Token::new(TokenType::Eof, 1)
         ];
-        let expected_ast = Ast::new(
+        let expected_ast = 
             Expr::Binary(Box::new(
                 Expr::LiteralBool(true)), 
                 TokenType::EqualEqual, 
-                Box::new(Expr::LiteralBool(false)))
-        );
+                Box::new(Expr::LiteralBool(false)));
+        let parser = Parser::new(tokens);
+        let actual_ast = Ast::new(parser);
+        assert_eq!(actual_ast.root_expr, expected_ast);
     }
 
-    //#[test]
-    // fn test_simple_expression_to_ast() {
-    //     // (1 + 2) * 3 == 9
-    //     let tokens = vec![
-    //         Token::new(TokenType::LeftParen, 1),
-    //         Token::new(TokenType::Number(1f32), 1),
-    //         Token::new(TokenType::Plus, 1),
-    //         Token::new(TokenType::Number(2f32), 1),
-    //         Token::new(TokenType::RightParen, 1),
-    //         Token::new(TokenType::Star, 1),
-    //         Token::new(TokenType::Number(3f32), 1),
-    //         Token::new(TokenType::EqualEqual, 1),
-    //         Token::new(TokenType::Number(9f32), 1),
-    //         Token::new(TokenType::Eof, 1)
-    //     ];
-    //     let ast = Ast::new(
-    //         Expr::Binary(
-    //             Box::new(
-    //             Expr::Binary(
-    //                 Box::new(
-    //                 Expr::Grouping(Box::new(Expr::Binary(
-    //                     Box::new(Expr::LiteralNumber(1.0)), 
-    //                     TokenType::Plus, 
-    //                     Box::new(Expr::LiteralNumber(2.0))
-    //                 )))),
-    //                 TokenType::Star,
-    //                 Box::new(Expr::LiteralNumber(3.0)))),
-    //             TokenType::EqualEqual,
-    //             Box::new(Expr::LiteralNumber(9.0))));
-    // }
+    #[test]
+    fn test_math_expression_to_ast() {
+        // (1 + 2) * 3 == 9
+        let tokens = vec![
+            Token::new(TokenType::LeftParen, 1),
+            Token::new(TokenType::Number(1f32), 1),
+            Token::new(TokenType::Plus, 1),
+            Token::new(TokenType::Number(2f32), 1),
+            Token::new(TokenType::RightParen, 1),
+            Token::new(TokenType::Star, 1),
+            Token::new(TokenType::Number(3f32), 1),
+            Token::new(TokenType::EqualEqual, 1),
+            Token::new(TokenType::Number(9f32), 1),
+            Token::new(TokenType::Eof, 1)
+        ];
+        let expected_ast = 
+            Expr::Binary(
+                Box::new(
+                Expr::Binary(
+                    Box::new(
+                    Expr::Grouping(Box::new(Expr::Binary(
+                        Box::new(Expr::LiteralNumber(1.0)), 
+                        TokenType::Plus, 
+                        Box::new(Expr::LiteralNumber(2.0))
+                    )))),
+                    TokenType::Star,
+                    Box::new(Expr::LiteralNumber(3.0)))),
+                TokenType::EqualEqual,
+                Box::new(Expr::LiteralNumber(9.0)));
+        let parser = Parser::new(tokens);
+        let actual_ast = Ast::new(parser);
+        assert_eq!(actual_ast.root_expr, expected_ast);
+    }
 }
