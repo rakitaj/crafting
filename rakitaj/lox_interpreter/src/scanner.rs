@@ -1,5 +1,4 @@
-use crate::tokens::TokenType;
-use crate::tokens::Token;
+use crate::tokens::{Token, TokenType};
 use std::iter::Peekable;
 
 pub struct SourceCode {
