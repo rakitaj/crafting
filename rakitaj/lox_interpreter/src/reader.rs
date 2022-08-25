@@ -4,7 +4,7 @@ pub struct Reader<T> {
 }
 
 impl<T> Reader<T> {
-    pub fn new(values: T) -> Self where T: IntoIterator<Item = T>{
+    pub fn new<I>(values: I) -> Self where I: IntoIterator<Item = T>{
         let iter_as_vector = values.into_iter().collect();
         Self {
             vector: iter_as_vector,
@@ -29,6 +29,9 @@ mod tests {
     #[case(vec![0, 1, 2], 2, Some(2))]
     fn test_peek(#[case] iterable: Vec<i32>, #[case] ahead: usize, #[case] expected: Option<i32>) {
         let reader = Reader::new(iterable);
-        assert_eq!(reader.peek(n), expected);
+        match reader.peek(ahead) {
+            Some(x) => assert_eq!(x, &expected.unwrap()),
+            None => assert_eq!(None, expected)
+        }
     }
 }
