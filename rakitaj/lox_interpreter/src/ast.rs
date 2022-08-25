@@ -86,17 +86,6 @@ impl Parser {
 
     fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
-        // while let Some(token) = self.tokens.get(self.current) {
-        //     match token.token_type {
-        //         TokenType::BangEqual | TokenType::EqualEqual => {
-        //             let operator = self.tokens[self.current];
-        //             self.current += 1;
-        //             let right = self.comparison().unwrap();
-        //             expr = Expr::Binary(Box::new(expr), operator.token_type, Box::new(right));
-        //         },
-        //         _ => {}
-        //     }
-        // }
         while self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous().token_type.clone();
             let right = self.comparison();
@@ -148,70 +137,42 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let mut expr: Option<Expr> = None;
-        while let Some(token) = self.tokens.get(self.current) {
-            match &token.token_type {
-                TokenType::False => {
-                    self.current += 1;
-                    expr = Some(Expr::LiteralBool(false))
-                },
-                TokenType::True => {
-                    self.current += 1;
-                    expr = Some(Expr::LiteralBool(true))
-                },
-                TokenType::Nil => {
-                    self.current += 1;
-                    expr = Some(Expr::LiteralNil)
-                },
-                TokenType::Number(x) => {
-                    self.current += 1;
-                    expr = Some(Expr::LiteralNumber(*x))
-                },
-                TokenType::String(x) => {
-                    self.current += 1;
-                    expr = Some(Expr::LiteralString(x.to_string()))
-                },
-                TokenType::LeftParen => {
-                    let expr_result = self.expression();
-                    self.consume(&token.token_type, "Expect ')' after expression.");
-                    expr = Some(Expr::Grouping(Box::new(expr_result)));
-                }
-                _ => return Err(ParseError::UnexpectedToken(token.clone(), "Found an unexpected token.".to_string()))
+        let token = self.tokens.get(self.current).unwrap();
+        match &token.token_type {
+            TokenType::False => {
+                self.current += 1;
+                expr = Some(Expr::LiteralBool(false))
+            },
+            TokenType::True => {
+                self.current += 1;
+                expr = Some(Expr::LiteralBool(true))
+            },
+            TokenType::Nil => {
+                self.current += 1;
+                expr = Some(Expr::LiteralNil)
+            },
+            TokenType::Number(x) => {
+                self.current += 1;
+                expr = Some(Expr::LiteralNumber(*x))
+            },
+            TokenType::String(x) => {
+                self.current += 1;
+                expr = Some(Expr::LiteralString(x.to_string()))
+            },
+            TokenType::LeftParen => {
+                self.current += 1;
+                let cloned_token = token.clone();
+                let expr_result = self.expression();
+                let _ = self.consume(&cloned_token.token_type, "Expect ')' after expression.");
+                expr = Some(Expr::Grouping(Box::new(expr_result)));
             }
+            _ => {}
         }
         return match expr {
             Some(x) => Ok(x),
             None => Err(ParseError::ExpressionIsNone)
         };
     }
-
-        // if self.match_token_type(&[TokenType::False]) {
-        //     return Expr::LiteralBool(false);
-        // }
-        // if self.match_token_type(&[TokenType::True]) {
-        //     return Expr::LiteralBool(true);
-        // }
-        // if self.match_token_type(&[TokenType::Nil]) {
-        //     return Expr::LiteralNil;
-        // }
-        // if self.match_token_type(&[TokenType::Number(1.0)]) {
-        //     match self.tokens[self.current].token_type {
-        //         TokenType::Number(n) => return Expr::LiteralNumber(n),
-        //         _ => panic!("Index {index}\nToken type: {token_type}\n", index=self.current, token_type=self.tokens[self.current])
-        //     }
-        // }
-        // if self.match_token_type(&[TokenType::String("".to_string())]) {
-        //     match &self.tokens[self.current].token_type {
-        //         TokenType::String(s) => return Expr::LiteralString(s.to_string()),
-        //         _ => panic!("Index {index}\nToken type: {token_type}\n", index=self.current, token_type=self.tokens[self.current])
-        //     }
-        // }
-        // if self.match_token_type(&[TokenType::LeftParen]) {
-        //     let expr = self.expression();
-        //     self.consume(&TokenType::RightParen, "Expect ')' after expression.");
-        //     return Expr::Grouping(Box::new(expr));
-        // }
-        // panic!("Index {index}\nToken type: {token_type}\n", index=self.current, token_type=self.tokens[self.current]);
-    
 
     fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<(), ParseError> {
         if self.check(token_type) {
@@ -249,7 +210,7 @@ mod tests {
     #[case(vec![Token::new(TokenType::RightParen, 1)], 1, true)]
     #[case(vec![Token::new(TokenType::Eof, 1)], 0, true)]
     #[case(vec![Token::new(TokenType::LeftParen, 1), Token::new(TokenType::Eof, 1)], 1, true)]
-    pub fn test_is_at_end(#[case] tokens: Vec<Token>, #[case] i: usize, #[case] expected: bool) {
+    fn test_is_at_end(#[case] tokens: Vec<Token>, #[case] i: usize, #[case] expected: bool) {
         let mut parser = Parser::new(tokens);
         parser.current = i;
         assert_eq!(parser.is_at_end(), expected);
@@ -294,37 +255,59 @@ mod tests {
         assert_eq!(actual_ast, expected_ast);
     }
 
-    // #[test]
-    // fn test_math_expression_to_ast() {
-    //     // (1 + 2) * 3 == 9
-    //     let tokens = vec![
-    //         Token::new(TokenType::LeftParen, 1),
-    //         Token::new(TokenType::Number(1f32), 1),
-    //         Token::new(TokenType::Plus, 1),
-    //         Token::new(TokenType::Number(2f32), 1),
-    //         Token::new(TokenType::RightParen, 1),
-    //         Token::new(TokenType::Star, 1),
-    //         Token::new(TokenType::Number(3f32), 1),
-    //         Token::new(TokenType::EqualEqual, 1),
-    //         Token::new(TokenType::Number(9f32), 1),
-    //         Token::new(TokenType::Eof, 1)
-    //     ];
-    //     let expected_ast = 
-    //         Expr::Binary(
-    //             Box::new(
-    //             Expr::Binary(
-    //                 Box::new(
-    //                 Expr::Grouping(Box::new(Expr::Binary(
-    //                     Box::new(Expr::LiteralNumber(1.0)), 
-    //                     TokenType::Plus, 
-    //                     Box::new(Expr::LiteralNumber(2.0))
-    //                 )))),
-    //                 TokenType::Star,
-    //                 Box::new(Expr::LiteralNumber(3.0)))),
-    //             TokenType::EqualEqual,
-    //             Box::new(Expr::LiteralNumber(9.0)));
-    //     let parser = Parser::new(tokens);
-    //     let actual_ast = Ast::new(parser);
-    //     assert_eq!(actual_ast.root_expr, expected_ast);
-    // }
+    #[test]
+    fn test_basic_grouping_expr() {
+        // (1 + 2)
+        let tokens = vec![
+            Token::new(TokenType::LeftParen, 1),
+            Token::new(TokenType::Number(1f32), 1),
+            Token::new(TokenType::Plus, 1),
+            Token::new(TokenType::Number(2f32), 1),
+            Token::new(TokenType::RightParen, 1)
+        ];
+        let expected_ast = 
+            Expr::Grouping(Box::new(
+                Expr::Binary(
+                    Box::new(Expr::LiteralNumber(1.0)), 
+                    TokenType::Plus, 
+                    Box::new(Expr::LiteralNumber(2.0))
+            )));
+        let mut parser = Parser::new(tokens);
+        let actual_ast = parser.parse();
+        assert_eq!(actual_ast, expected_ast);
+    }
+
+    #[test]
+    fn test_math_expression_to_ast() {
+        // (1 + 2) * 3 == 9
+        let tokens = vec![
+            Token::new(TokenType::LeftParen, 1),
+            Token::new(TokenType::Number(1f32), 1),
+            Token::new(TokenType::Plus, 1),
+            Token::new(TokenType::Number(2f32), 1),
+            Token::new(TokenType::RightParen, 1),
+            Token::new(TokenType::Star, 1),
+            Token::new(TokenType::Number(3f32), 1),
+            Token::new(TokenType::EqualEqual, 1),
+            Token::new(TokenType::Number(9f32), 1),
+            Token::new(TokenType::Eof, 1)
+        ];
+        let expected_ast = 
+            Expr::Binary(
+                Box::new(
+                Expr::Binary(
+                    Box::new(
+                    Expr::Grouping(Box::new(Expr::Binary(
+                        Box::new(Expr::LiteralNumber(1.0)), 
+                        TokenType::Plus, 
+                        Box::new(Expr::LiteralNumber(2.0))
+                    )))),
+                    TokenType::Star,
+                    Box::new(Expr::LiteralNumber(3.0)))),
+                TokenType::EqualEqual,
+                Box::new(Expr::LiteralNumber(9.0)));
+        let mut parser = Parser::new(tokens);
+        let actual_ast = parser.parse();
+        assert_eq!(actual_ast, expected_ast);
+    }
 }
