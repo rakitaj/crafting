@@ -75,8 +75,8 @@ impl Token {
         line: usize
     ) -> Self {
         Token {
-            token_type: token_type,
-            line: line
+            token_type,
+            line 
         }
     }
 }

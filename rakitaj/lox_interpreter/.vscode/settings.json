@@ -1,4 +1,4 @@
 {
     "extensions.ignoreRecommendations": true,
-    "debug.allowBreakpointsEverywhere": true
+    "rust-analyzer.checkOnSave.command": "clippy"
 }

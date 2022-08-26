@@ -26,20 +26,20 @@ fn print_help() {
     println!("Start interactive prompt: prompt");
 }
 
-fn run_file(filepath: &str) -> () {
+fn run_file(filepath: &str) {
     let raw_source = load_source(filepath);
     run(raw_source)
     
 }
 
-fn run_prompt() -> () {
+fn run_prompt() {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let unwrapped_line = match line {
             Ok(x) => x,
             Err(_) => break
         };
-        if unwrapped_line.len() == 0 {
+        if unwrapped_line.is_empty() {
             break;
         } else {
             run(unwrapped_line);
@@ -47,7 +47,7 @@ fn run_prompt() -> () {
     }
 }
 
-fn run(raw_source: String) -> () {
+fn run(raw_source: String) {
     let mut source = SourceCode::new(raw_source);
     for token in source.scan_tokens() {
         println!("{:?}", token);
@@ -65,11 +65,11 @@ fn load_source(filepath: &str) -> String {
     }
 }
 
-fn error(line: usize, message: String) -> () {
+fn error(line: usize, message: String) {
     report(line, "".to_string(), message);
 }
 
-fn report(line: usize, location: String, message: String) -> () {
+fn report(line: usize, location: String, message: String) {
     println!("[line {}] Error {}: {}", line, location, message);
 }
 

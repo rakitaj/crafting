@@ -12,8 +12,16 @@ impl<T> Reader<T> {
         }
     }
 
-    pub fn peek(&self, n: usize) -> Option<&T> {
-        self.vector.get(self.i + n)
+    pub fn get(&self, n: usize) -> Option<&T> {
+        self.vector.get(n)
+    }
+
+    pub fn peek(&self, offset: usize) -> Option<&T> {
+        self.vector.get(self.i + offset)
+    }
+
+    pub fn next(&mut self) {
+        self.i += 1;
     }
 }
 

@@ -1,19 +1,9 @@
 use crate::tokens::{Token, TokenType};
-use std::iter::Peekable;
+use std::iter::{once, Peekable};
 
 pub struct SourceCode {
     pub source: String,
     pub line: usize,
-}
-
-pub fn match_peek(indices: &mut Peekable<std::str::CharIndices>, match_char: char) -> bool {
-    let peek_result = indices.peek();
-    match peek_result {
-        Some(pr) => {
-            return pr.1 == match_char;
-        },
-        None => return false
-    }
 }
 
 pub fn scan_number(initial_char: char, indices: &mut Peekable<std::str::CharIndices>) -> f32 {
@@ -32,9 +22,7 @@ pub fn scan_number(initial_char: char, indices: &mut Peekable<std::str::CharIndi
 
 pub fn is_valid_for_identifier(c: char) -> bool {
     match c {
-        'a' ..= 'z' | 'A' ..= 'Z' => true,
-        '0' ..= '9' => true,
-        '_' | '?' => true,
+        'a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '_' | '?' => true,
         _ => false
     }
 }
@@ -64,7 +52,7 @@ pub fn identifier_or_keyword_to_tokentype(identifier: String) -> TokenType {
 impl SourceCode {
     pub fn new(source: String) -> Self {
         SourceCode {
-            source: source,
+            source,
             line: 1,
         }
     }
@@ -75,14 +63,15 @@ impl SourceCode {
         match_char: char,
         match_token_type: TokenType,
         not_match_token_type: TokenType,
-        tokens: &mut Vec<Token>
-    ) -> () {
-            let peek_matches = match_peek(indices, match_char);
-            if peek_matches {
-                tokens.push(Token::new(match_token_type, self.line));
-                indices.next();
-            } else {
-                tokens.push(Token::new(not_match_token_type, self.line));
+        tokens: &mut Vec<Token>) {
+            match indices.peek() {
+                Some(pair) if pair.1 == match_char => {
+                    tokens.push(Token::new(match_token_type, self.line));
+                    indices.next();
+                },
+                Some(_) | None => {
+                    tokens.push(Token::new(not_match_token_type, self.line));
+                }
             }
         }
 
@@ -105,11 +94,12 @@ impl SourceCode {
                 ';' => tokens.push(Token::new(TokenType::SemiColon, self.line)),
                 '*' => tokens.push(Token::new(TokenType::Star, self.line)),
                 '/' => {
-                    if match_peek(&mut indices, '/') {
-                        indices.by_ref().skip_while(|x| x.1 != '\n').next();
-                        self.line +=1 ;
-                    } else {
-                        tokens.push(Token::new(TokenType::Slash, self.line));
+                    match indices.peek() {
+                        Some(indice) if indice.1 == '/' => {
+                            indices.find(|x| x.1 == '\n');
+                            self.line +=1 ;
+                        },
+                        _ => tokens.push(Token::new(TokenType::Slash, self.line))
                     }
                 },
                 '!' => self.peek_match_and_add(&mut indices, '=', TokenType::BangEqual, TokenType::Bang, &mut tokens),
@@ -121,25 +111,26 @@ impl SourceCode {
                     tokens.push(Token::new(TokenType::Number(number), self.line));
                 },
                 '"' => {
-                    let string_as_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| x.1 != '"').collect();
-                    let string_literal: String = string_as_chars.into_iter().map(|x| { x.1 }).collect();
+                    let string_literal: String = indices.by_ref().take_while(|x| x.1 != '"').map(|x| { x.1 }).collect();
                     tokens.push(Token::new(TokenType::String(string_literal), self.line))
                 },
                 'a' ..= 'z' | 'A' ..= 'Z' | '_' => {
                     // Handle either an identifier or keyword.
                     // Read all the chars needed to determine if the token is a keyword or identifier.
-                    let mut ambiguous_token = vec![c];
-                    let rest_of_chars: Vec<(usize, char)> = indices.by_ref().take_while(|x| is_valid_for_identifier(x.1)).collect();
-                    ambiguous_token.extend(rest_of_chars.into_iter().map(|x| x.1));
-
-                    let token_type = identifier_or_keyword_to_tokentype(ambiguous_token.into_iter().collect());
+                    let rest_of_chars = 
+                        indices.by_ref()
+                        .take_while(|x| is_valid_for_identifier(x.1))
+                        .map(|x| x.1);
+                    
+                    let unknown_token = once(c).chain(rest_of_chars).collect();
+                    let token_type = identifier_or_keyword_to_tokentype(unknown_token);
                     tokens.push(Token::new(token_type, self.line));
                 }
                 _ => {},
             }
         }
         tokens.push(Token::new(TokenType::Eof, self.line));
-        return tokens;
+        tokens
     }
 }
 
