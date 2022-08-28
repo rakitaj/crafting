@@ -24,7 +24,7 @@ pub struct Ast {
 pub enum ParseError {
     UnexpectedToken(Token, String),
     UnexpectedTokenType(TokenType, String),
-    ExpressionIsNone(usize),
+    ExpectExpression(usize),
     IndexError(usize)
 }
 
@@ -140,10 +140,10 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let mut expr: Option<Expr> = None;
-        let token = match self.tokens.get(self.current) {
-            Some(t) => t,
-            None => return Err(ParseError::IndexError(self.current))
-        };
+
+        let token = self.tokens.get(self.current)
+            .ok_or(ParseError::IndexError(self.current))?;
+
         match &token.token_type {
             TokenType::False => {
                 self.current += 1;
@@ -176,7 +176,7 @@ impl Parser {
         }
         match expr {
             Some(x) => Ok(x),
-            None => Err(ParseError::ExpressionIsNone(self.current))
+            None => Err(ParseError::ExpectExpression(self.current))
         }
     }
 
@@ -185,7 +185,25 @@ impl Parser {
             self.advance();
             Ok(())
         } else {
-            Err(ParseError::UnexpectedTokenType(token_type.clone(), message.to_string()))
+            let unexpected_token = self.tokens[self.current].clone();
+            Err(ParseError::UnexpectedToken(unexpected_token, message.to_string()))
+        }
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().token_type == TokenType::SemiColon {
+                return
+            }
+
+            match self.tokens[self.current].token_type {
+                TokenType::Class | TokenType::Fun | TokenType::Var
+                | TokenType:: For | TokenType::If | TokenType:: While
+                | TokenType::Print | TokenType::Return => return,
+                _ => { self.advance(); }
+            }
         }
     }
 }
