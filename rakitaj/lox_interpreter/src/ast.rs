@@ -24,7 +24,8 @@ pub struct Ast {
 pub enum ParseError {
     UnexpectedToken(Token, String),
     UnexpectedTokenType(TokenType, String),
-    ExpressionIsNone
+    ExpressionIsNone(usize),
+    IndexError(usize)
 }
 
 pub struct Parser {
@@ -37,7 +38,7 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Expr {
+    pub fn parse(&mut self) -> Result<Expr, ParseError> {
         self.expression()
     }
 
@@ -80,64 +81,69 @@ impl Parser {
         false
     }
 
-    fn expression(&mut self) -> Expr {
+    fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Expr {
-        let mut expr = self.comparison();
+    fn equality(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.comparison()?;
         while self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous().token_type.clone();
-            let right = self.comparison();
+            let right = self.comparison()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
-        expr
+        Ok(expr)
     }
 
-    fn comparison(&mut self) -> Expr {
-        let mut expr = self.term();
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.term()?;
         while self.match_token_type(&[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
             let operator = self.previous().token_type.clone();
-            let right = self.term();
+            let right = self.term()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
-        expr
+        Ok(expr)
     }
 
-    fn term(&mut self) -> Expr {
-        let mut expr = self.factor();
+    fn term(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.factor()?;
         while self.match_token_type(&[TokenType::Plus, TokenType::Minus]) {
             let operator = self.previous().token_type.clone();
-            let right = self.factor();
+            let right = self.factor()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Expr {
-        let mut expr = self.unary();
+    fn factor(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.unary()?;
         while self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().token_type.clone();
-            let right = self.unary();
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            let right = self.unary()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right))
+
         }
-        expr
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> Expr {
+    fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
           let operator = self.previous().token_type.clone();
-          let right = self.unary();
-          return Expr::Unary(operator, Box::new(right)
-        );
+          return match self.unary() {
+            Ok(right) => Ok(Expr::Unary(operator, Box::new(right))),
+            Err(err) => Err(err)
+          }
         }
     
-        self.primary().unwrap()
+        self.primary()
     }
 
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let mut expr: Option<Expr> = None;
-        let token = self.tokens.get(self.current).unwrap();
+        let token = match self.tokens.get(self.current) {
+            Some(t) => t,
+            None => return Err(ParseError::IndexError(self.current))
+        };
         match &token.token_type {
             TokenType::False => {
                 self.current += 1;
@@ -161,15 +167,16 @@ impl Parser {
             },
             TokenType::LeftParen => {
                 self.current += 1;
-                let expr_result = self.expression();
-                let _ = self.consume(&TokenType::RightParen, "Expect ')' after expression.");
+                let expr_result = self.expression()?;
+                // If the Result type is an error, use the ? to short-circuit and return it early.
+                let _ = self.consume(&TokenType::RightParen, "Expect ')' after expression. After the expression finishes parsing the next token type must be a RightParen.")?;
                 expr = Some(Expr::Grouping(Box::new(expr_result)));
             }
             _ => {}
         }
         match expr {
             Some(x) => Ok(x),
-            None => Err(ParseError::ExpressionIsNone)
+            None => Err(ParseError::ExpressionIsNone(self.current))
         }
     }
 
@@ -215,12 +222,12 @@ mod tests {
         assert_eq!(parser.is_at_end(), expected);
     }
 
-    // #[test]
-    // pub fn test_no_token_should_be_parse_error() {
-    //     let tokens: Vec<Token> = Vec::new();
-    //     let parser = Parser::new(tokens);
-    //     assert_eq!(parser.parse(), Err(ParseError::ExpressionIsNone));
-    // }
+    #[test]
+    pub fn test_no_token_should_be_parse_error() {
+        let tokens: Vec<Token> = Vec::new();
+        let mut parser = Parser::new(tokens);
+        assert_eq!(parser.parse(), Err(ParseError::IndexError(0)));
+    }
 
     #[test]
     fn test_parenthesize() {
@@ -251,7 +258,7 @@ mod tests {
                 Box::new(Expr::LiteralBool(false)));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
-        assert_eq!(actual_ast, expected_ast);
+        assert_eq!(actual_ast.unwrap(), expected_ast);
     }
 
     #[test]
@@ -273,7 +280,7 @@ mod tests {
             )));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
-        assert_eq!(actual_ast, expected_ast);
+        assert_eq!(actual_ast.unwrap(), expected_ast);
     }
 
     #[test]
@@ -307,6 +314,6 @@ mod tests {
                 Box::new(Expr::LiteralNumber(9.0)));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
-        assert_eq!(actual_ast, expected_ast);
+        assert_eq!(actual_ast.unwrap(), expected_ast);
     }
 }
