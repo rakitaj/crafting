@@ -1,18 +1,26 @@
+use crate::scanner::SourceCode;
 use crate::tokens::Token;
 use crate::tokens::TokenType;
 
 #[derive(PartialEq, Debug)]
+pub enum Literal {
+    Nil,
+    Number(f32),
+    String(String),
+    True,
+    False
+}
+
+#[derive(PartialEq, Debug)]
 pub enum Expr {
-    LiteralBool(bool),
-    LiteralNumber(f32),
-    LiteralNil,
-    LiteralString(String),
+    Literal(Literal),
 
     Grouping(Box<Expr>),
 
     Unary(TokenType, Box<Expr>),
 
     Binary(Box<Expr>, TokenType, Box<Expr>),
+    Ternary(Box<Expr>, Box<Expr>, Box<Expr>)
 }
 
 #[derive(PartialEq)]
@@ -147,23 +155,23 @@ impl Parser {
         match &token.token_type {
             TokenType::False => {
                 self.current += 1;
-                expr = Some(Expr::LiteralBool(false))
+                expr = Some(Expr::Literal(Literal::False))
             },
             TokenType::True => {
                 self.current += 1;
-                expr = Some(Expr::LiteralBool(true))
+                expr = Some(Expr::Literal(Literal::True))
             },
             TokenType::Nil => {
                 self.current += 1;
-                expr = Some(Expr::LiteralNil)
+                expr = Some(Expr::Literal(Literal::Nil))
             },
             TokenType::Number(x) => {
                 self.current += 1;
-                expr = Some(Expr::LiteralNumber(*x))
+                expr = Some(Expr::Literal(Literal::Number(*x)))
             },
             TokenType::String(x) => {
                 self.current += 1;
-                expr = Some(Expr::LiteralString(x.to_string()))
+                expr = Some(Expr::Literal(Literal::String(x.to_string())))
             },
             TokenType::LeftParen => {
                 self.current += 1;
@@ -208,18 +216,24 @@ impl Parser {
     }
 }
 
+pub fn source_to_ast(source: String) -> Result<Expr, ParseError> {
+    let mut source_code = SourceCode::new(source);
+    let tokens = source_code.scan_tokens();
+    let mut parser = Parser::new(tokens);
+    parser.parse()
+}
+
 pub fn parenthesize(expr: Expr) -> String {
     match expr {
-        Expr::LiteralBool(value) => match value {
-            true => "true".to_string(),
-            false => "false".to_string()
-        },
-        Expr::LiteralNumber(value) => value.to_string(),
-        Expr::LiteralNil => "nil".to_string(),
-        Expr::LiteralString(value) => value,
+        Expr::Literal(Literal::False) => "false".to_string(),
+        Expr::Literal(Literal::True) => "true".to_string(),
+        Expr::Literal(Literal::Nil) => "nil".to_string(),
+        Expr::Literal(Literal::Number(value)) => value.to_string(),
+        Expr::Literal(Literal::String(value)) => value,
         Expr::Grouping(expr) => format!("(group {})", parenthesize(*expr)),
         Expr::Unary(token, expr) => format!("({} {})", token, parenthesize(*expr)),
         Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token, parenthesize(*expr_left), parenthesize(*expr_right)),
+        Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(*expr_conditional), parenthesize(*expr_left), parenthesize(*expr_right))
     }
 }
 
@@ -253,9 +267,9 @@ mod tests {
         let root_expr = Expr::Binary(
             Box::new(Expr::Unary(
                 TokenType::Minus, 
-                Box::new(Expr::LiteralNumber(123.0)))),
+                Box::new(Expr::Literal(Literal::Number(123.0))))),
             TokenType::Star,
-            Box::new(Expr::Grouping(Box::new(Expr::LiteralNumber(45.67)))));
+            Box::new(Expr::Grouping(Box::new(Expr::Literal(Literal::Number(45.67))))));
         let result = parenthesize(root_expr);
         assert_eq!(result, "(* (- 123) (group 45.67))");
     }
@@ -271,9 +285,9 @@ mod tests {
         ];
         let expected_ast = 
             Expr::Binary(Box::new(
-                Expr::LiteralBool(true)), 
+                Expr::Literal(Literal::True)), 
                 TokenType::EqualEqual, 
-                Box::new(Expr::LiteralBool(false)));
+                Box::new(Expr::Literal(Literal::False)));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);
@@ -292,9 +306,9 @@ mod tests {
         let expected_ast = 
             Expr::Grouping(Box::new(
                 Expr::Binary(
-                    Box::new(Expr::LiteralNumber(1.0)), 
+                    Box::new(Expr::Literal(Literal::Number(1.0))), 
                     TokenType::Plus, 
-                    Box::new(Expr::LiteralNumber(2.0))
+                    Box::new(Expr::Literal(Literal::Number(2.0)))
             )));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
@@ -322,14 +336,14 @@ mod tests {
                 Expr::Binary(
                     Box::new(
                     Expr::Grouping(Box::new(Expr::Binary(
-                        Box::new(Expr::LiteralNumber(1.0)), 
+                        Box::new(Expr::Literal(Literal::Number(1.0))), 
                         TokenType::Plus, 
-                        Box::new(Expr::LiteralNumber(2.0))
+                        Box::new(Expr::Literal(Literal::Number(2.0)))
                     )))),
                     TokenType::Star,
-                    Box::new(Expr::LiteralNumber(3.0)))),
+                    Box::new(Expr::Literal(Literal::Number(3.0))))),
                 TokenType::EqualEqual,
-                Box::new(Expr::LiteralNumber(9.0)));
+                Box::new(Expr::Literal(Literal::Number(9.0))));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);

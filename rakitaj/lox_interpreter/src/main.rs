@@ -4,6 +4,7 @@ use std::io;
 use std::io::prelude::*;
 
 use lox_interpreter::scanner::SourceCode;
+use lox_interpreter::parser::{Parser, parenthesize};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -49,9 +50,13 @@ fn run_prompt() {
 
 fn run(raw_source: String) {
     let mut source = SourceCode::new(raw_source);
+    let tokens = source.scan_tokens();
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse().unwrap();
     for token in source.scan_tokens() {
         println!("{:?}", token);
     }
+    println!("{}", parenthesize(ast));
 }
 
 fn load_source(filepath: &str) -> String {
