@@ -52,19 +52,19 @@ impl Interpreter {
                     _ => Err(InterpreterError::ExprUnaryMismatch(operator, "Visiting Unary".to_string()))
                 }
             },
-            Expr::Binary(left_expr, operator, right_expr) => {
-                let left = self.visit_expr(*left_expr)?;
-                let right = self.visit_expr(*right_expr)?;
-                match operator {
-                    TokenType::Minus => {
-                        match (left, right) {
-                            (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num - right_num)),
-                            (left, right) => Err(InterpreterError::ExprBinaryMismatch(left, right, "Expected two numbers.".to_string()))
-                        }
-                    },
-                    x => Err(InterpreterError::ExprBinaryMismatch)
-                }
-            },
+            // Expr::Binary(left_expr, operator, right_expr) => {
+            //     let left = self.visit_expr(*left_expr)?;
+            //     let right = self.visit_expr(*right_expr)?;
+            //     match operator {
+            //         TokenType::Minus => {
+            //             match (left, right) {
+            //                 (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num - right_num)),
+            //                 (left, right) => Err(InterpreterError::ExprBinaryMismatch(left, right, "Expected two numbers.".to_string()))
+            //             }
+            //         },
+            //         x => Err(InterpreterError::ExprBinaryMismatch)
+            //     }
+            // },
             _ => Err(InterpreterError::GenericError("Shouldn't get here".to_string()))
         }
     }
