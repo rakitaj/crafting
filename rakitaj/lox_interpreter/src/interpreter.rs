@@ -9,7 +9,7 @@ pub struct Interpreter {
 pub enum InterpreterError {
     ValueTypeError(Value, String),
     ExprUnaryMismatch(TokenType, String),
-    ExprBinaryMismatch,
+    ExprBinaryMismatch(Value, Value, String),
     GenericError(String)
 }
 
@@ -59,7 +59,7 @@ impl Interpreter {
                     TokenType::Minus => {
                         match (left, right) {
                             (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num - right_num)),
-                            (left, right) => Err(InterpreterError::ExprBinaryMismatch)
+                            (left, right) => Err(InterpreterError::ExprBinaryMismatch(left, right, "Expected two numbers.".to_string()))
                         }
                     },
                     x => Err(InterpreterError::ExprBinaryMismatch)
@@ -68,4 +68,12 @@ impl Interpreter {
             _ => Err(InterpreterError::GenericError("Shouldn't get here".to_string()))
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::*;
+
+    
 }
