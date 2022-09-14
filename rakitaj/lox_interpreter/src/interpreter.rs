@@ -1,6 +1,6 @@
 use crate::parser::{Expr, Literal};
 use crate::tokens::TokenType;
-use crate::value::{Value, is_truthy};
+use crate::value::Value;
 
 pub struct Interpreter {
     root_expr: Expr
@@ -9,6 +9,7 @@ pub struct Interpreter {
 pub enum InterpreterError {
     ValueTypeError(Value, String),
     ExprUnaryMismatch(TokenType, String),
+    ExprBinaryMismatch,
     GenericError(String)
 }
 
@@ -43,7 +44,7 @@ impl Interpreter {
                     },
                     TokenType::Bang => {
                         // Negate, aka flip, the result of is_truthy because this is the bang unary operator.
-                        match is_truthy(right) {
+                        match right.is_truthy() {
                             true => Ok(Value::False),
                             false => Ok(Value::True)
                         }
@@ -52,10 +53,16 @@ impl Interpreter {
                 }
             },
             Expr::Binary(left_expr, operator, right_expr) => {
-                let left = self.visit_expr(left_expr)?;
-                let right = self.visit_expr(right_expr)?;
+                let left = self.visit_expr(*left_expr)?;
+                let right = self.visit_expr(*right_expr)?;
                 match operator {
-                    
+                    TokenType::Minus => {
+                        match (left, right) {
+                            (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num - right_num)),
+                            (left, right) => Err(InterpreterError::ExprBinaryMismatch)
+                        }
+                    },
+                    x => Err(InterpreterError::ExprBinaryMismatch)
                 }
             },
             _ => Err(InterpreterError::GenericError("Shouldn't get here".to_string()))

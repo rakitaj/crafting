@@ -7,12 +7,15 @@ pub enum Value {
     String(String),
 }
 
-pub fn is_truthy(value: Value) -> bool {
-    match value {
-        Value::False | Value::Nil => false,
-        _ => true
+impl Value {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Value::False | Value::Nil => false,
+            _ => true
+        }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -25,6 +28,6 @@ mod tests {
     #[case(Value::True, true)]
     #[case(Value::String("".to_string()), true)]
     fn test_is_truthy(#[case] value: Value, #[case] expected: bool) {
-        assert_eq!(is_truthy(value), expected);
+        assert_eq!(value.is_truthy(), expected);
     }
 }
