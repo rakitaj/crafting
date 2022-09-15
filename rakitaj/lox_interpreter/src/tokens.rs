@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::core::location::Location;
+
 #[derive(Debug, PartialEq)]
 #[derive(Clone)]
 pub enum TokenType {
@@ -66,17 +68,17 @@ impl fmt::Display for TokenType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub line: usize
+    pub location: Location
 }
 
 impl Token {
     pub fn new(
         token_type: TokenType,
-        line: usize
+        location: Location
     ) -> Self {
         Token {
             token_type,
-            line 
+            location
         }
     }
 }
@@ -84,7 +86,7 @@ impl Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
-            f, "{} {}", &self.token_type, &self.line
+            f, "{} {}", &self.token_type, &self.location
         )
     }
 }

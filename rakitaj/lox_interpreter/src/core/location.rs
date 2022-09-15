@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Location {
     Unknown,
     Eof(String),
@@ -22,11 +22,11 @@ impl fmt::Display for Location {
         match self {
             Location::Unknown => f.write_str("Unknown location."),
             Location::Eof(filename) => {
-                let message = format!("Error at end of file: {filename}", filename = filename);
+                let message = format!("Error at -> {filename} end of file.", filename = filename);
                 f.write_str(&message)
             },
             Location::Line(filename, line) => {
-                let message = format!("Error at {filename}:{line}", filename = filename, line = line);
+                let message = format!("Error at -> {filename}:{line}", filename = filename, line = line);
                 f.write_str(&message)
             }
         }

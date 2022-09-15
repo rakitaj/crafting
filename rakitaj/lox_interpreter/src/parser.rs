@@ -1,6 +1,8 @@
+use crate::core::location::Location;
 use crate::scanner::SourceCode;
 use crate::tokens::Token;
 use crate::tokens::TokenType;
+use crate::core::errors::LoxError;
 
 #[derive(PartialEq, Debug)]
 pub enum Literal {
@@ -28,14 +30,6 @@ pub struct Ast {
     pub root_expr: Expr
 }
 
-#[derive(Debug, PartialEq)]
-pub enum ParseError {
-    UnexpectedToken(Token, String),
-    UnexpectedTokenType(TokenType, String),
-    ExpectExpression(usize),
-    IndexError(usize)
-}
-
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize
@@ -46,7 +40,7 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
+    pub fn parse(&mut self) -> Result<Expr, LoxError> {
         self.expression()
     }
 
@@ -89,11 +83,11 @@ impl Parser {
         false
     }
 
-    fn expression(&mut self) -> Result<Expr, ParseError> {
+    fn expression(&mut self) -> Result<Expr, LoxError> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Result<Expr, ParseError> {
+    fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparison()?;
         while self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous().token_type.clone();
@@ -103,7 +97,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn comparison(&mut self) -> Result<Expr, ParseError> {
+    fn comparison(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.term()?;
         while self.match_token_type(&[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
             let operator = self.previous().token_type.clone();
@@ -113,7 +107,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn term(&mut self) -> Result<Expr, ParseError> {
+    fn term(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.factor()?;
         while self.match_token_type(&[TokenType::Plus, TokenType::Minus]) {
             let operator = self.previous().token_type.clone();
@@ -123,7 +117,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expr, ParseError> {
+    fn factor(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.unary()?;
         while self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().token_type.clone();
@@ -134,7 +128,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr, ParseError> {
+    fn unary(&mut self) -> Result<Expr, LoxError> {
         if self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
           let operator = self.previous().token_type.clone();
           return match self.unary() {
@@ -146,13 +140,13 @@ impl Parser {
         self.primary()
     }
 
-    fn primary(&mut self) -> Result<Expr, ParseError> {
+    fn primary(&mut self) -> Result<Expr, LoxError> {
         let mut expr: Option<Expr> = None;
 
         let token = self.tokens.get(self.current)
-            .ok_or(ParseError::IndexError(self.current))?;
+            .ok_or_else(|| LoxError::SyntaxError(Location::Unknown, "No token".to_string()))?;
 
-        match &token.token_type {
+        match &(token.token_type) {
             TokenType::False => {
                 self.current += 1;
                 expr = Some(Expr::Literal(Literal::False))
@@ -176,7 +170,6 @@ impl Parser {
             TokenType::LeftParen => {
                 self.current += 1;
                 let expr_result = self.expression()?;
-                // If the Result type is an error, use the ? to short-circuit and return it early.
                 let _ = self.consume(&TokenType::RightParen, "Expect ')' after expression. After the expression finishes parsing the next token type must be a RightParen.")?;
                 expr = Some(Expr::Grouping(Box::new(expr_result)));
             }
@@ -184,17 +177,22 @@ impl Parser {
         }
         match expr {
             Some(x) => Ok(x),
-            None => Err(ParseError::ExpectExpression(self.current))
+            None => {
+                // Why do I have to get the token from self and can't use token.location.clone()
+                let t = self.tokens.get(self.current).unwrap();
+                Err(LoxError::RuntimeError(t.location.clone(), "Expected expression and found None.".to_string()))
+            }
         }
     }
 
-    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<(), ParseError> {
+    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<(), LoxError> {
         if self.check(token_type) {
             self.advance();
             Ok(())
         } else {
             let unexpected_token = self.tokens[self.current].clone();
-            Err(ParseError::UnexpectedToken(unexpected_token, message.to_string()))
+            let msg = format!("{message}\nUnexpected token is {unexpected_token}");
+            Err(LoxError::SyntaxError(unexpected_token.location, msg))
         }
     }
 
@@ -216,8 +214,8 @@ impl Parser {
     }
 }
 
-pub fn source_to_ast(source: String) -> Result<Expr, ParseError> {
-    let mut source_code = SourceCode::new(source);
+pub fn source_to_ast(source: String, filename: String) -> Result<Expr, LoxError> {
+    let mut source_code = SourceCode::new(source, filename);
     let tokens = source_code.scan_tokens();
     let mut parser = Parser::new(tokens);
     parser.parse()
@@ -242,12 +240,16 @@ mod tests {
     use super::*;
     use rstest::*;
 
+    fn loc(line: usize) -> Location {
+        Location::Line("unittest.lox".to_string(), line)
+    }
+
     #[rstest]
     #[case(vec![], 0, true)]
-    #[case(vec![Token::new(TokenType::LeftParen, 1)], 0, false)]
-    #[case(vec![Token::new(TokenType::RightParen, 1)], 1, true)]
-    #[case(vec![Token::new(TokenType::Eof, 1)], 0, true)]
-    #[case(vec![Token::new(TokenType::LeftParen, 1), Token::new(TokenType::Eof, 1)], 1, true)]
+    #[case(vec![Token::new(TokenType::LeftParen, loc(1))], 0, false)]
+    #[case(vec![Token::new(TokenType::RightParen, loc(1))], 1, true)]
+    #[case(vec![Token::new(TokenType::Eof, loc(1))], 0, true)]
+    #[case(vec![Token::new(TokenType::LeftParen, loc(1)), Token::new(TokenType::Eof, loc(1))], 1, true)]
     fn test_is_at_end(#[case] tokens: Vec<Token>, #[case] i: usize, #[case] expected: bool) {
         let mut parser = Parser::new(tokens);
         parser.current = i;
@@ -258,7 +260,8 @@ mod tests {
     pub fn test_no_token_should_be_parse_error() {
         let tokens: Vec<Token> = Vec::new();
         let mut parser = Parser::new(tokens);
-        assert_eq!(parser.parse(), Err(ParseError::IndexError(0)));
+        let error = Err(LoxError::SyntaxError(Location::Unknown, "No token".to_string()));
+        assert_eq!(parser.parse(), error);
     }
 
     #[test]
@@ -278,10 +281,10 @@ mod tests {
     fn test_basic_equality_expr() {
         // true == false
         let tokens = vec![
-            Token::new(TokenType::True, 1),
-            Token::new(TokenType::EqualEqual, 1),
-            Token::new(TokenType::False, 1),
-            Token::new(TokenType::Eof, 1)
+            Token::new(TokenType::True, loc(1)),
+            Token::new(TokenType::EqualEqual, loc(1)),
+            Token::new(TokenType::False, loc(1)),
+            Token::new(TokenType::Eof, loc(1))
         ];
         let expected_ast = 
             Expr::Binary(Box::new(
@@ -297,11 +300,11 @@ mod tests {
     fn test_basic_grouping_expr() {
         // (1 + 2)
         let tokens = vec![
-            Token::new(TokenType::LeftParen, 1),
-            Token::new(TokenType::Number(1f32), 1),
-            Token::new(TokenType::Plus, 1),
-            Token::new(TokenType::Number(2f32), 1),
-            Token::new(TokenType::RightParen, 1)
+            Token::new(TokenType::LeftParen, loc(1)),
+            Token::new(TokenType::Number(1f32), loc(1)),
+            Token::new(TokenType::Plus, loc(1)),
+            Token::new(TokenType::Number(2f32), loc(1)),
+            Token::new(TokenType::RightParen, loc(1))
         ];
         let expected_ast = 
             Expr::Grouping(Box::new(
@@ -319,16 +322,16 @@ mod tests {
     fn test_math_expression_to_ast() {
         // (1 + 2) * 3 == 9
         let tokens = vec![
-            Token::new(TokenType::LeftParen, 1),
-            Token::new(TokenType::Number(1f32), 1),
-            Token::new(TokenType::Plus, 1),
-            Token::new(TokenType::Number(2f32), 1),
-            Token::new(TokenType::RightParen, 1),
-            Token::new(TokenType::Star, 1),
-            Token::new(TokenType::Number(3f32), 1),
-            Token::new(TokenType::EqualEqual, 1),
-            Token::new(TokenType::Number(9f32), 1),
-            Token::new(TokenType::Eof, 1)
+            Token::new(TokenType::LeftParen, loc(1)),
+            Token::new(TokenType::Number(1f32), loc(1)),
+            Token::new(TokenType::Plus, loc(1)),
+            Token::new(TokenType::Number(2f32), loc(1)),
+            Token::new(TokenType::RightParen, loc(1)),
+            Token::new(TokenType::Star, loc(1)),
+            Token::new(TokenType::Number(3f32), loc(1)),
+            Token::new(TokenType::EqualEqual, loc(1)),
+            Token::new(TokenType::Number(9f32), loc(1)),
+            Token::new(TokenType::Eof, loc(1))
         ];
         let expected_ast = 
             Expr::Binary(

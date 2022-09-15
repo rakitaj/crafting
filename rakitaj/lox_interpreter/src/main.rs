@@ -49,7 +49,7 @@ fn run_prompt() {
 }
 
 fn run(raw_source: String) {
-    let mut source = SourceCode::new(raw_source);
+    let mut source = SourceCode::new(raw_source, "repl.lox".to_string());
     let tokens = source.scan_tokens();
     let mut parser = Parser::new(tokens);
     let ast = parser.parse().unwrap();
