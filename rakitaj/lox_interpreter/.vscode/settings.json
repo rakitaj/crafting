@@ -1,0 +1,4 @@
+{
+    "extensions.ignoreRecommendations": true,
+    "rust-analyzer.checkOnSave.command": "clippy"
+}
