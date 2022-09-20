@@ -1,3 +1,4 @@
+use crate::core::errors::LoxError;
 use crate::parser::{Expr, Literal};
 use crate::tokens::TokenType;
 use crate::value::Value;
@@ -6,21 +7,14 @@ pub struct Interpreter {
     root_expr: Expr
 }
 
-pub enum InterpreterError {
-    ValueTypeError(Value, String),
-    ExprUnaryMismatch(TokenType, String),
-    ExprBinaryMismatch(Value, Value, String),
-    GenericError(String)
-}
-
 impl Interpreter {
     pub fn new(root_expr: Expr) -> Self {
         Interpreter { root_expr }
     }
 
-    pub fn visit_expr(&self, expr: Expr) -> Result<Value, InterpreterError> {
+    pub fn visit_expr(&self, expr: Expr) -> Result<Value, LoxError> {
         match expr {
-            Expr::Literal(literal) => {
+            Expr::Literal(_, literal) => {
                 match literal {
                     Literal::Nil => Ok(Value::Nil),
                     Literal::False => Ok(Value::False),
@@ -30,7 +24,7 @@ impl Interpreter {
                 }
             },
             Expr::Grouping(grouping) => self.visit_expr(*grouping),
-            Expr::Unary(operator, unary) => {
+            Expr::Unary(location, operator, unary) => {
                 let right: Value = self.visit_expr(*unary)?;
                 match operator {
                     TokenType::Minus => {
@@ -38,7 +32,7 @@ impl Interpreter {
                             Value::Number(number) => Ok(Value::Number(-number)),
                             _ =>  {
                                 let error_msg = format!("Expected Value::Number and got {:?}", right);
-                                Err(InterpreterError::ValueTypeError(right, error_msg))
+                                Err(LoxError::RuntimeError(location, error_msg))
                             }
                         }
                     },
@@ -49,7 +43,7 @@ impl Interpreter {
                             false => Ok(Value::True)
                         }
                     },
-                    _ => Err(InterpreterError::ExprUnaryMismatch(operator, "Visiting Unary".to_string()))
+                    _ => Err(LoxError::RuntimeError(location, "Visiting unary expr and wasn't a unary operator.".to_string()))
                 }
             },
             // Expr::Binary(left_expr, operator, right_expr) => {
@@ -65,15 +59,7 @@ impl Interpreter {
             //         x => Err(InterpreterError::ExprBinaryMismatch)
             //     }
             // },
-            _ => Err(InterpreterError::GenericError("Shouldn't get here".to_string()))
+            _ => Err(LoxError::Critical("Shouldn't get here".to_string()))
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rstest::*;
-
-    
 }
