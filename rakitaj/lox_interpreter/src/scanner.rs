@@ -172,36 +172,6 @@ mod tests {
             Token::new(TokenType::Eof, loc(1))]);
     }
 
-    // #[rstest]
-    // #[case("(", vec![Token::new(TokenType::LeftParen, 1)])]
-    // #[case(")", vec![Token::new(TokenType::RightParen, 1)])]
-    // #[case("{", vec![Token::new(TokenType::LeftBrace, 1)])]
-    // #[case("}", vec![Token::new(TokenType::RightBrace, 1)])]
-
-    // #[case(",", vec![Token::new(TokenType::Comma, 1)])]
-    // #[case(".", vec![Token::new(TokenType::Dot, 1)])]
-    // #[case("-", vec![Token::new(TokenType::Minus, 1)])]
-    // #[case("+", vec![Token::new(TokenType::Plus, 1)])]
-    // #[case(";", vec![Token::new(TokenType::SemiColon, 1)])]
-    // #[case("/", vec![Token::new(TokenType::Slash, 1)])]
-    // #[case("*", vec![Token::new(TokenType::Star, 1)])]
-
-
-    // #[case("!=", vec![Token::new(TokenType::BangEqual, 1)])]
-    // #[case("!", vec![Token::new(TokenType::Bang, 1)])]
-    // #[case("==", vec![Token::new(TokenType::EqualEqual, 1)])]
-    // #[case("=", vec![Token::new(TokenType::Equal, 1)])]
-    // #[case("<=", vec![Token::new(TokenType::LessEqual, 1)])]
-    // #[case("<", vec![Token::new(TokenType::Less, 1)])]
-    // #[case(">=", vec![Token::new(TokenType::GreaterEqual, 1)])]
-    // #[case(">", vec![Token::new(TokenType::Greater, 1)])]
-    // fn test_scan_tokens_single_token(#[case] raw_source: String, #[case] expected_tokens: Vec<Token>) {
-    //     let mut source_code = SourceCode::new(raw_source, "unittest.lox".to_string());
-    //     let tokens = source_code.scan_tokens();
-    //     assert_eq!(tokens[0], expected_tokens[0]);
-    //     assert_eq!(tokens[1], Token::new(TokenType::Eof, Location::Eof("unittest.lox".to_string())))
-    // }
-
     #[test]
     fn test_scan_tokens_comment() {
         let mut source = SourceCode::new("+ == // **\n!!".to_string(), "unittest.lox".to_string());
