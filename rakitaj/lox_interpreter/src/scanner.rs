@@ -238,7 +238,7 @@ mod tests {
         let mut source = SourceCode::new("(1 + 2) * 3 \n == 9".to_string(), "unittest.lox".to_string());
         let tokens = source.scan_tokens();
         assert_eq!(tokens, vec![
-            Token::new(TokenType::LeftParen, loc(1)),
+            Token::new(TokenType::LeftParen, loc(2)),
             Token::new(TokenType::Number(1f32), loc(1)),
             Token::new(TokenType::Plus, loc(1)),
             Token::new(TokenType::Number(2f32), loc(1)),
