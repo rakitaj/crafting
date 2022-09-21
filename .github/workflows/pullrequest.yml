@@ -17,15 +17,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build @ joraki
-      run: cargo build --verbose
+      run: cargo build
       working-directory: "./rakitaj/lox_interpreter"
     - name: Test @ joraki
-      run: cargo test --verbose
+      run: cargo test
       working-directory: "./rakitaj/lox_interpreter"
     - name: Build @ benbp
-      run: cargo build --verbose
+      run: cargo build
       working-directory: "./benbp/rust/interpreter"
     - name: Test @ benbp
-      run: cargo test --verbose
+      run: cargo test
       working-directory: "./benbp/rust/interpreter"
 
