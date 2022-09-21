@@ -19,12 +19,13 @@ jobs:
     - name: Build @ joraki
       run: cargo build --verbose
       working-directory: "./rakitaj/lox_interpreter"
-    - name: Run tests @ joraki
+    - name: Test @ joraki
       run: cargo test --verbose
       working-directory: "./rakitaj/lox_interpreter"
     - name: Build @ benbp
       run: cargo build --verbose
-      working-directory: "./benbp/rust"
-    - name: Run tests @ benbp
+      working-directory: "./benbp/rust/interpreter"
+    - name: Test @ benbp
       run: cargo test --verbose
-      working-directory: "./benbp/rust"
+      working-directory: "./benbp/rust/interpreter"
+
