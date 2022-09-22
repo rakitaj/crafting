@@ -3,8 +3,15 @@ use std::fs;
 use std::io;
 use std::io::prelude::*;
 
+use lox_interpreter::interpreter::Interpreter;
+use lox_interpreter::parser::parenthesize;
 use lox_interpreter::scanner::SourceCode;
-use lox_interpreter::parser::{Parser, parenthesize};
+use lox_interpreter::parser::Parser;
+
+enum ReplMode {
+    Standard,
+    Debug
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,7 +20,9 @@ fn main() {
     if args.len() == 1 || args[1] == "/?" || args[1] == "--help" || args[1] == "-?" {
         print_help();
     } else if args.len() == 2 && args[1] == "prompt" {
-        run_prompt();
+        run_prompt(ReplMode::Standard);
+    } else if args.len() == 2 && args[1] == "debug-prompt" {
+        run_prompt(ReplMode::Debug);
     } else if args.len() == 3 && args[1] == "rlox" {
         run_file(&args[2]);
     } else {
@@ -25,6 +34,7 @@ fn main() {
 fn print_help() {
     println!("Execute script          : rlox [script]");
     println!("Start interactive prompt: prompt");
+    println!("Start interactive language dev prompt: debug-prompt");
 }
 
 fn run_file(filepath: &str) {
@@ -33,7 +43,7 @@ fn run_file(filepath: &str) {
     
 }
 
-fn run_prompt() {
+fn run_prompt(mode: ReplMode) {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let unwrapped_line = match line {
@@ -43,7 +53,10 @@ fn run_prompt() {
         if unwrapped_line.is_empty() {
             break;
         } else {
-            run(unwrapped_line);
+            match mode {
+                ReplMode::Standard => run(unwrapped_line),
+                ReplMode::Debug => run_debug(unwrapped_line)
+            }
         }
     }
 }
@@ -53,10 +66,26 @@ fn run(raw_source: String) {
     let tokens = source.scan_tokens();
     let mut parser = Parser::new(tokens);
     let ast = parser.parse().unwrap();
-    for token in source.scan_tokens() {
+    let interpreter = Interpreter::new(ast);
+    interpreter.interpret();
+}
+
+fn run_debug(raw_source: String) {
+    let mut source = SourceCode::new(&raw_source, "repl.lox".to_string());
+    let tokens = source.scan_tokens();
+    
+    for token in &tokens {
         println!("{:?}", token);
     }
-    println!("{}", parenthesize(ast));
+    
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse().unwrap();
+    
+    println!("{}", parenthesize(&ast));
+    
+    let interpreter = Interpreter::new(ast);
+    interpreter.interpret();
+    
 }
 
 fn load_source(filepath: &str) -> String {
