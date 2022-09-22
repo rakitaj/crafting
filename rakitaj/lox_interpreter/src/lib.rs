@@ -3,6 +3,5 @@ pub mod core;
 pub mod tokens;
 pub mod scanner;
 pub mod parser;
-pub mod reader;
 pub mod interpreter;
 pub mod value;
