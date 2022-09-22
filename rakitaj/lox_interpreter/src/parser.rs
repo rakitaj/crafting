@@ -222,17 +222,17 @@ pub fn source_to_ast(source: &str, filename: String) -> Result<Expr, LoxError> {
     parser.parse()
 }
 
-pub fn parenthesize(expr: Expr) -> String {
+pub fn parenthesize(expr: &Expr) -> String {
     match expr {
         Expr::Literal(_, Literal::False) => "false".to_string(),
         Expr::Literal(_, Literal::True) => "true".to_string(),
         Expr::Literal(_, Literal::Nil) => "nil".to_string(),
         Expr::Literal(_, Literal::Number(value)) => value.to_string(),
-        Expr::Literal(_, Literal::String(value)) => value,
-        Expr::Grouping(expr) => format!("(group {})", parenthesize(*expr)),
-        Expr::Unary(token, expr) => format!("({} {})", token.token_type, parenthesize(*expr)),
-        Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(*expr_left), parenthesize(*expr_right)),
-        Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(*expr_conditional), parenthesize(*expr_left), parenthesize(*expr_right))
+        Expr::Literal(_, Literal::String(value)) => value.to_string(),
+        Expr::Grouping(expr) => format!("(group {})", parenthesize(expr)),
+        Expr::Unary(token, expr) => format!("({} {})", token.token_type, parenthesize(expr)),
+        Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(expr_left), parenthesize(expr_right)),
+        Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right))
     }
 }
 
@@ -274,7 +274,7 @@ mod tests {
                 Box::new(Expr::Literal(loc(1), Literal::Number(123.0))))),
             Token::new(TokenType::Star, loc(1)),
             Box::new(Expr::Grouping(Box::new(Expr::Literal(loc(1), Literal::Number(45.67))))));
-        let result = parenthesize(root_expr);
+        let result = parenthesize(&root_expr);
         assert_eq!(result, "(* (- 123) (group 45.67))");
     }
 
