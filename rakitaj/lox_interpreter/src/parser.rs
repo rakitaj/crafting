@@ -171,7 +171,7 @@ impl Parser {
             TokenType::LeftParen => {
                 self.current += 1;
                 let expr_result = self.expression()?;
-                let _ = self.consume(&TokenType::RightParen, "Expect ')' after expression. After the expression finishes parsing the next token type must be a RightParen.")?;
+                self.consume(&TokenType::RightParen, "Expect ')' after expression. After the expression finishes parsing the next token type must be a RightParen.")?;
                 expr = Some(Expr::Grouping(Box::new(expr_result)));
             }
             _ => {}

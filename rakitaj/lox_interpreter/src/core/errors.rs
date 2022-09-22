@@ -1,6 +1,6 @@
 use super::location::Location;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum LoxError {
     SyntaxError(Location, String),
     RuntimeError(Location, String),
