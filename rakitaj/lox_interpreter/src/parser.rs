@@ -19,9 +19,9 @@ pub enum Expr {
 
     Grouping(Box<Expr>),
 
-    Unary(Location, TokenType, Box<Expr>),
+    Unary(Token, Box<Expr>),
 
-    Binary(Box<Expr>, TokenType, Box<Expr>),
+    Binary(Box<Expr>, Token, Box<Expr>),
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>)
 }
 
@@ -90,7 +90,7 @@ impl Parser {
     fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparison()?;
         while self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
-            let operator = self.previous().token_type.clone();
+            let operator = self.previous().clone();
             let right = self.comparison()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
@@ -100,7 +100,7 @@ impl Parser {
     fn comparison(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.term()?;
         while self.match_token_type(&[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
-            let operator = self.previous().token_type.clone();
+            let operator = self.previous().clone();
             let right = self.term()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
@@ -110,7 +110,7 @@ impl Parser {
     fn term(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.factor()?;
         while self.match_token_type(&[TokenType::Plus, TokenType::Minus]) {
-            let operator = self.previous().token_type.clone();
+            let operator = self.previous().clone();
             let right = self.factor()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
@@ -120,7 +120,7 @@ impl Parser {
     fn factor(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.unary()?;
         while self.match_token_type(&[TokenType::Slash, TokenType::Star]) {
-            let operator = self.previous().token_type.clone();
+            let operator = self.previous().clone();
             let right = self.unary()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right))
 
@@ -132,7 +132,7 @@ impl Parser {
         if self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
           let operator = self.previous().clone();
           return match self.unary() {
-            Ok(right) => Ok(Expr::Unary(operator.location, operator.token_type, Box::new(right))),
+            Ok(right) => Ok(Expr::Unary(operator, Box::new(right))),
             Err(err) => Err(err)
           }
         }
@@ -230,8 +230,8 @@ pub fn parenthesize(expr: Expr) -> String {
         Expr::Literal(_, Literal::Number(value)) => value.to_string(),
         Expr::Literal(_, Literal::String(value)) => value,
         Expr::Grouping(expr) => format!("(group {})", parenthesize(*expr)),
-        Expr::Unary(_, token, expr) => format!("({} {})", token, parenthesize(*expr)),
-        Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token, parenthesize(*expr_left), parenthesize(*expr_right)),
+        Expr::Unary(token, expr) => format!("({} {})", token.token_type, parenthesize(*expr)),
+        Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(*expr_left), parenthesize(*expr_right)),
         Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(*expr_conditional), parenthesize(*expr_left), parenthesize(*expr_right))
     }
 }
@@ -270,10 +270,9 @@ mod tests {
         // -123 * (45.67)
         let root_expr = Expr::Binary(
             Box::new(Expr::Unary(
-                loc(1),
-                TokenType::Minus, 
+                Token::new(TokenType::Minus, loc(1)), 
                 Box::new(Expr::Literal(loc(1), Literal::Number(123.0))))),
-            TokenType::Star,
+            Token::new(TokenType::Star, loc(1)),
             Box::new(Expr::Grouping(Box::new(Expr::Literal(loc(1), Literal::Number(45.67))))));
         let result = parenthesize(root_expr);
         assert_eq!(result, "(* (- 123) (group 45.67))");
@@ -291,7 +290,7 @@ mod tests {
         let expected_ast = 
             Expr::Binary(Box::new(
                 Expr::Literal(loc(1), Literal::True)), 
-                TokenType::EqualEqual, 
+                Token::new(TokenType::EqualEqual, loc(1)), 
                 Box::new(Expr::Literal(loc(1), Literal::False)));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
@@ -312,7 +311,7 @@ mod tests {
             Expr::Grouping(Box::new(
                 Expr::Binary(
                     Box::new(Expr::Literal(loc(1), Literal::Number(1.0))), 
-                    TokenType::Plus, 
+                    Token::new(TokenType::Plus, loc(1)), 
                     Box::new(Expr::Literal(loc(1), Literal::Number(2.0)))
             )));
         let mut parser = Parser::new(tokens);
@@ -342,12 +341,12 @@ mod tests {
                     Box::new(
                     Expr::Grouping(Box::new(Expr::Binary(
                         Box::new(Expr::Literal(loc(1), Literal::Number(1.0))), 
-                        TokenType::Plus, 
+                        Token::new(TokenType::Plus, loc(1)), 
                         Box::new(Expr::Literal(loc(1), Literal::Number(2.0)))
                     )))),
-                    TokenType::Star,
+                    Token::new(TokenType::Star, loc(1)),
                     Box::new(Expr::Literal(loc(1), Literal::Number(3.0))))),
-                TokenType::EqualEqual,
+                Token::new(TokenType::EqualEqual, loc(1)),
                 Box::new(Expr::Literal(loc(1), Literal::Number(9.0))));
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();

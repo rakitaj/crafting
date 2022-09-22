@@ -24,15 +24,15 @@ impl Interpreter {
                 }
             },
             Expr::Grouping(grouping) => self.visit_expr(*grouping),
-            Expr::Unary(location, operator, unary) => {
+            Expr::Unary(operator, unary) => {
                 let right: Value = self.visit_expr(*unary)?;
-                match operator {
+                match operator.token_type {
                     TokenType::Minus => {
                         match right {
                             Value::Number(number) => Ok(Value::Number(-number)),
                             _ =>  {
                                 let error_msg = format!("Expected Value::Number and got {:?}", right);
-                                Err(LoxError::RuntimeError(location, error_msg))
+                                Err(LoxError::RuntimeError(operator.location, error_msg))
                             }
                         }
                     },
@@ -43,22 +43,34 @@ impl Interpreter {
                             false => Ok(Value::True)
                         }
                     },
-                    _ => Err(LoxError::RuntimeError(location, "Visiting unary expr and wasn't a unary operator.".to_string()))
+                    _ => Err(LoxError::RuntimeError(operator.location, "Visiting unary expr and wasn't a unary operator.".to_string()))
                 }
             },
-            // Expr::Binary(left_expr, operator, right_expr) => {
-            //     let left = self.visit_expr(*left_expr)?;
-            //     let right = self.visit_expr(*right_expr)?;
-            //     match operator {
-            //         TokenType::Minus => {
-            //             match (left, right) {
-            //                 (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num - right_num)),
-            //                 (left, right) => Err(InterpreterError::ExprBinaryMismatch(left, right, "Expected two numbers.".to_string()))
-            //             }
-            //         },
-            //         x => Err(InterpreterError::ExprBinaryMismatch)
-            //     }
-            // },
+            Expr::Binary(left_expr, operator, right_expr) => {
+                let left = self.visit_expr(*left_expr)?;
+                let right = self.visit_expr(*right_expr)?;
+                match operator.token_type {
+                    TokenType::Minus => {
+                        match (left, right) {
+                            (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num - right_num)),
+                            (left, right) => Err(LoxError::RuntimeError(operator.location, format!("Expected two numbers and got left: {:?} -- right: {:?}", left, right)))
+                        }
+                    },
+                    TokenType::Slash => {
+                        match (left, right) {
+                            (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num / right_num)),
+                            (left, right) => Err(LoxError::RuntimeError(operator.location, format!("Expected two numbers and got left: {:?} -- right: {:?}", left, right)))
+                        }
+                    },
+                    TokenType::Star => {
+                        match (left, right) {
+                            (Value::Number(left_num), Value::Number(right_num)) => Ok(Value::Number(left_num * right_num)),
+                            (left, right) => Err(LoxError::RuntimeError(operator.location, format!("Expected two numbers and got left: {:?} -- right: {:?}", left, right)))
+                        }
+                    },
+                    _ => Err(LoxError::RuntimeError(operator.location, "Should be unreachable".to_string()))
+                }
+            },
             _ => Err(LoxError::Critical("Shouldn't get here".to_string()))
         }
     }
