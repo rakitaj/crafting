@@ -6,7 +6,7 @@ fn loc(line: usize) -> Location {
 
 #[test]
 fn test_hardcoded_source_code_to_ast() {
-    let s = "(1 + 2) / 3 == 1".to_string();
+    let s = "(1 + 2) / 3 == 1";
     let ast_result = lox_interpreter::parser::source_to_ast(s, "integration-test.lox".to_string());
     let expected_ast = Expr::Binary(
         Box::new(

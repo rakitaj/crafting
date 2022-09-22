@@ -215,7 +215,7 @@ impl Parser {
     }
 }
 
-pub fn source_to_ast(source: String, filename: String) -> Result<Expr, LoxError> {
+pub fn source_to_ast(source: &str, filename: String) -> Result<Expr, LoxError> {
     let mut source_code = SourceCode::new(source, filename);
     let tokens = source_code.scan_tokens();
     let mut parser = Parser::new(tokens);

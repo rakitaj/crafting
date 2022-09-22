@@ -26,7 +26,8 @@ impl<T> Reader<T> {
 
     /// Returns a slice starting at the current index, inclusive, and continues as
     /// long as the elements match the provided predicate function. 
-    pub fn take_while_inclusive<F>(&mut self, pred: F) -> &[T] where F: Fn(&T) -> bool {
+    //pub fn take_while_inclusive<F>(&mut self, pred: F) -> &[T] where F: Fn(&T) -> bool {
+    pub fn take_while_inclusive<F: Fn(&T) -> bool>(&mut self, pred: F) -> &[T] {
         let starting_i = self.i;
         while let Some(val) = self.vector.get(self.i) {
             if pred(val) {
