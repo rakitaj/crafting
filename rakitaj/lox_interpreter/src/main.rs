@@ -3,6 +3,7 @@ use std::fs;
 use std::io;
 use std::io::prelude::*;
 
+use lox_interpreter::interpreter::Interpreter;
 use lox_interpreter::scanner::SourceCode;
 use lox_interpreter::parser::{Parser, parenthesize};
 
@@ -53,10 +54,12 @@ fn run(raw_source: String) {
     let tokens = source.scan_tokens();
     let mut parser = Parser::new(tokens);
     let ast = parser.parse().unwrap();
-    for token in source.scan_tokens() {
-        println!("{:?}", token);
-    }
-    println!("{}", parenthesize(ast));
+    let interpreter = Interpreter::new(ast);
+    interpreter.interpret();
+    // for token in source.scan_tokens() {
+    //     println!("{:?}", token);
+    // }
+    // println!("{}", parenthesize(ast));
 }
 
 fn load_source(filepath: &str) -> String {
