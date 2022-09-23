@@ -1,35 +1,68 @@
 use crate::core::errors::LoxError;
-use crate::parser::{Expr, Literal};
+use crate::parser::{Expr, Literal, Stmt};
 use crate::tokens::TokenType;
 use crate::value::Value;
 
-pub struct Interpreter {
-    root_expr: Expr,
+struct InterpreterState {
     runtime_error: bool
 }
 
-impl Interpreter {
-    pub fn new(root_expr: Expr) -> Self {
-        Interpreter { 
-            root_expr, 
-            runtime_error: false 
-        }
-    }
-
-    pub fn interpret(mut self) {
-        let result = self.evaluate(&self.root_expr);
-        match result {
-            Ok(x) => println!("{}", x),
-            Err(err) => self.runtime_error(&err)
-        }
-    }
-
+impl InterpreterState {
     fn runtime_error(&mut self, err: &LoxError) {
         self.runtime_error = true;
         println!("{}", err);
     }
+}
 
-    fn evaluate(&self, expr: &Expr) -> Result<Value, LoxError> {
+pub struct Interpreter {
+    statements: Vec<Stmt>,
+    state: InterpreterState
+}
+
+impl Interpreter {
+    pub fn new(statements: Vec<Stmt>) -> Self {
+        let state = InterpreterState { runtime_error: false };
+        Interpreter { 
+            statements,
+            state
+        }
+    }
+
+    pub fn interpret(&mut self) -> Vec<LoxError> {
+        let mut errors: Vec<LoxError> = Vec::new();
+        for stmt in &self.statements {
+            let result = self.evaluate(stmt);
+            match result {
+                Ok(x) => match x {
+                    Some(y) => println!("{}", y),
+                    None => println!("No value returned. No errors.")
+                },
+                Err(err) => {
+                    self.state.runtime_error(&err);
+                    errors.push(err);
+                }
+            }
+        }
+        errors
+    }
+
+    fn evaluate(&self, stmt: &Stmt) -> Result<Option<Value>, LoxError> {
+        match stmt {
+            Stmt::Expression(expr) => {
+                let value = self.evaluate_expr(expr)?;
+                Ok(Some(value))
+            },
+            Stmt::Print(expr) => self.evaluate_print(expr)
+        }
+    }
+
+    fn evaluate_print(&self, expr: &Expr) -> Result<Option<Value>, LoxError> {
+        let value = self.evaluate_expr(expr)?;
+        println!("{}", value);
+        Ok(None)
+    }
+
+    fn evaluate_expr(&self, expr: &Expr) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal(_, literal) => {
                 match literal {
@@ -40,9 +73,9 @@ impl Interpreter {
                     Literal::String(string) => Ok(Value::String(string.to_string())),
                 }
             },
-            Expr::Grouping(grouping) => self.evaluate(grouping),
+            Expr::Grouping(grouping) => self.evaluate_expr(grouping),
             Expr::Unary(operator, unary) => {
-                let right: Value = self.evaluate(unary)?;
+                let right: Value = self.evaluate_expr(unary)?;
                 match operator.token_type {
                     TokenType::Minus => {
                         match right {
@@ -64,8 +97,8 @@ impl Interpreter {
                 }
             },
             Expr::Binary(left_expr, operator, right_expr) => {
-                let left = self.evaluate(left_expr)?;
-                let right = self.evaluate(right_expr)?;
+                let left = self.evaluate_expr(left_expr)?;
+                let right = self.evaluate_expr(right_expr)?;
                 match (left, right) {
                     (Value::Number(left_num), Value::Number(right_num)) => {
                         match operator.token_type {
@@ -103,5 +136,5 @@ impl Interpreter {
             },
             _ => Err(LoxError::Critical("Shouldn't get here".to_string()))
         }
-    }
+    }    
 }

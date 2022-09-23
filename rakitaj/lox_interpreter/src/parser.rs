@@ -1,5 +1,4 @@
 use crate::core::location::Location;
-use crate::scanner::SourceCode;
 use crate::tokens::Token;
 use crate::tokens::TokenType;
 use crate::core::errors::LoxError;
@@ -25,6 +24,12 @@ pub enum Expr {
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>)
 }
 
+#[derive(PartialEq, Debug)]
+pub enum Stmt {
+    Expression(Expr),
+    Print(Expr)
+}
+
 #[derive(PartialEq)]
 pub struct Ast {
     pub root_expr: Expr
@@ -40,8 +45,17 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, LoxError> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            let stmt = self.statement()?;
+            statements.push(stmt);
+        }
+        match statements.len() {
+            0 => Err(LoxError::Critical("No tokens parsed.".to_string())),
+            _ => Ok(statements)
+        }
+        
     }
 
     fn previous(&self) -> &Token {
@@ -81,6 +95,26 @@ impl Parser {
             }
         }
         false
+    }
+
+    fn statement(&mut self) -> Result<Stmt, LoxError> {
+        if self.match_token_type(&[TokenType::Print]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, LoxError> {
+        let expr = self.expression()?;
+        self.consume(&TokenType::SemiColon, "Expect ; after value.")?;
+        Ok(Stmt::Print(expr))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
+        let expr = self.expression()?;
+        self.consume(&TokenType::SemiColon, "Expect ; after value.")?;
+        Ok(Stmt::Expression(expr))
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
@@ -144,7 +178,7 @@ impl Parser {
         let mut expr: Option<Expr> = None;
 
         let token = self.tokens.get(self.current)
-            .ok_or_else(|| LoxError::SyntaxError(Location::Unknown, "No token".to_string()))?;
+            .ok_or_else(|| LoxError::SyntaxError(Location::Unknown, format!("Token get out of index i={}", self.current)))?;
         let location = token.location.clone();
 
         match &(token.token_type) {
@@ -215,11 +249,14 @@ impl Parser {
     }
 }
 
-pub fn source_to_ast(source: &str, filename: String) -> Result<Expr, LoxError> {
-    let mut source_code = SourceCode::new(source, filename);
-    let tokens = source_code.scan_tokens();
-    let mut parser = Parser::new(tokens);
-    parser.parse()
+pub fn parenthesize_statements(statements: &[Stmt]) -> String {
+    let mut strings: Vec<String> = Vec::new();
+    for stmt in statements {
+        if let Stmt::Expression(expr) = stmt {
+            strings.push(parenthesize(expr));
+        }
+    }
+    strings.join("\n")
 }
 
 pub fn parenthesize(expr: &Expr) -> String {
@@ -258,11 +295,12 @@ mod tests {
     }
 
     #[test]
-    pub fn test_no_token_should_be_parse_error() {
+    pub fn test_no_token_should_be_critical_error() {
         let tokens: Vec<Token> = Vec::new();
         let mut parser = Parser::new(tokens);
-        let error = Err(LoxError::SyntaxError(Location::Unknown, "No token".to_string()));
-        assert_eq!(parser.parse(), error);
+        let error = LoxError::Critical("No tokens parsed.".to_string());
+        let actual_error = parser.parse().unwrap_err();
+        assert_eq!(actual_error, error);
     }
 
     #[test]
@@ -285,13 +323,16 @@ mod tests {
             Token::new(TokenType::True, loc(1)),
             Token::new(TokenType::EqualEqual, loc(1)),
             Token::new(TokenType::False, loc(1)),
-            Token::new(TokenType::Eof, loc(1))
+            Token::new(TokenType::SemiColon, loc(1)),
+            Token::new(TokenType::Eof, loc(1)),
         ];
+
         let expected_ast = 
-            Expr::Binary(Box::new(
+            vec![Stmt::Expression(Expr::Binary(Box::new(
                 Expr::Literal(loc(1), Literal::True)), 
                 Token::new(TokenType::EqualEqual, loc(1)), 
-                Box::new(Expr::Literal(loc(1), Literal::False)));
+                Box::new(Expr::Literal(loc(1), Literal::False))))];
+
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);
@@ -305,15 +346,19 @@ mod tests {
             Token::new(TokenType::Number(1f32), loc(1)),
             Token::new(TokenType::Plus, loc(1)),
             Token::new(TokenType::Number(2f32), loc(1)),
-            Token::new(TokenType::RightParen, loc(1))
+            Token::new(TokenType::RightParen, loc(1)),
+            Token::new(TokenType::SemiColon, loc(1)),
+            Token::new(TokenType::Eof, loc(1)),
         ];
+
         let expected_ast = 
-            Expr::Grouping(Box::new(
+            vec![Stmt::Expression(Expr::Grouping(Box::new(
                 Expr::Binary(
                     Box::new(Expr::Literal(loc(1), Literal::Number(1.0))), 
                     Token::new(TokenType::Plus, loc(1)), 
                     Box::new(Expr::Literal(loc(1), Literal::Number(2.0)))
-            )));
+            ))))];
+            
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);
@@ -332,10 +377,12 @@ mod tests {
             Token::new(TokenType::Number(3f32), loc(1)),
             Token::new(TokenType::EqualEqual, loc(1)),
             Token::new(TokenType::Number(9f32), loc(1)),
+            Token::new(TokenType::SemiColon, loc(1)),
             Token::new(TokenType::Eof, loc(1))
         ];
+
         let expected_ast = 
-            Expr::Binary(
+            vec![Stmt::Expression(Expr::Binary(
                 Box::new(
                 Expr::Binary(
                     Box::new(
@@ -347,7 +394,8 @@ mod tests {
                     Token::new(TokenType::Star, loc(1)),
                     Box::new(Expr::Literal(loc(1), Literal::Number(3.0))))),
                 Token::new(TokenType::EqualEqual, loc(1)),
-                Box::new(Expr::Literal(loc(1), Literal::Number(9.0))));
+                Box::new(Expr::Literal(loc(1), Literal::Number(9.0)))))];
+            
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);

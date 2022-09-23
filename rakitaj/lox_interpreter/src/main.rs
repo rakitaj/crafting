@@ -4,7 +4,7 @@ use std::io;
 use std::io::prelude::*;
 
 use lox_interpreter::interpreter::Interpreter;
-use lox_interpreter::parser::parenthesize;
+use lox_interpreter::parser::parenthesize_statements;
 use lox_interpreter::scanner::SourceCode;
 use lox_interpreter::parser::Parser;
 
@@ -66,7 +66,7 @@ fn run(raw_source: String) {
     let tokens = source.scan_tokens();
     let mut parser = Parser::new(tokens);
     let ast = parser.parse().unwrap();
-    let interpreter = Interpreter::new(ast);
+    let mut interpreter = Interpreter::new(ast);
     interpreter.interpret();
 }
 
@@ -81,9 +81,9 @@ fn run_debug(raw_source: String) {
     let mut parser = Parser::new(tokens);
     let ast = parser.parse().unwrap();
     
-    println!("{}", parenthesize(&ast));
+    println!("{}", parenthesize_statements(&ast));
     
-    let interpreter = Interpreter::new(ast);
+    let mut interpreter = Interpreter::new(ast);
     interpreter.interpret();
     
 }
