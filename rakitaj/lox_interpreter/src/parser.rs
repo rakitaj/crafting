@@ -14,20 +14,19 @@ pub enum Literal {
 
 #[derive(PartialEq, Debug)]
 pub enum Expr {
-    Literal(Location, Literal),
-
-    Grouping(Box<Expr>),
-
-    Unary(Token, Box<Expr>),
-
     Binary(Box<Expr>, Token, Box<Expr>),
-    Ternary(Box<Expr>, Box<Expr>, Box<Expr>)
+    Grouping(Box<Expr>),
+    Literal(Location, Literal),
+    Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
+    Unary(Token, Box<Expr>),
+    Variable(Token)
 }
 
 #[derive(PartialEq, Debug)]
 pub enum Stmt {
     Expression(Expr),
-    Print(Expr)
+    Print(Expr),
+    Var(Token, Expr)
 }
 
 #[derive(PartialEq)]
@@ -95,6 +94,35 @@ impl Parser {
             }
         }
         false
+    }
+
+    fn declaration(&mut self) -> Result<Stmt, LoxError> {
+        if self.match_token_type(&[TokenType::Var]) {
+            match self.var_declaration() {
+                Ok(x) => return Ok(x),
+                Err(err) => {
+                    self.synchronize();
+                    return Err(err);
+                }
+            }
+        }
+        return self.statement();
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
+        // Todo: Consume any generic identifier
+        let name: &Token = self.consume(&TokenType::Identifier("How can I match any name".to_string()), "Still confused")?;
+        let cloned_name = name.clone();
+
+        let mut initializer: Option<Expr> = None;
+        if self.match_token_type(&[TokenType::Equal]) {
+            initializer = Some(self.expression()?);
+        }
+        self.consume(&TokenType::SemiColon, "Expect ';' after variable declaration.")?;
+        match initializer {
+            Some(x) => Ok(Stmt::Var(cloned_name, x)),
+            None => Ok(Stmt::Var(cloned_name, Expr::Literal(Location::Unknown, Literal::Nil)))
+        }
     }
 
     fn statement(&mut self) -> Result<Stmt, LoxError> {
@@ -207,6 +235,10 @@ impl Parser {
                 let expr_result = self.expression()?;
                 self.consume(&TokenType::RightParen, "Expect ')' after expression. After the expression finishes parsing the next token type must be a RightParen.")?;
                 expr = Some(Expr::Grouping(Box::new(expr_result)));
+            },
+            TokenType::Identifier(_) => {
+                self.current += 1;
+                expr = Some(Expr::Variable(self.previous().clone()))
             }
             _ => {}
         }
@@ -220,10 +252,9 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<(), LoxError> {
+    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<&Token, LoxError> {
         if self.check(token_type) {
-            self.advance();
-            Ok(())
+            Ok(self.advance())
         } else {
             let unexpected_token = self.tokens[self.current].clone();
             let msg = format!("{message}\nUnexpected token is {unexpected_token}");
@@ -269,7 +300,8 @@ pub fn parenthesize(expr: &Expr) -> String {
         Expr::Grouping(expr) => format!("(group {})", parenthesize(expr)),
         Expr::Unary(token, expr) => format!("({} {})", token.token_type, parenthesize(expr)),
         Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(expr_left), parenthesize(expr_right)),
-        Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right))
+        Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right)),
+        Expr::Variable(var_identifier) => format!("var {}", var_identifier)
     }
 }
 

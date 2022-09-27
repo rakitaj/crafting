@@ -1,27 +1,34 @@
 use crate::core::errors::LoxError;
+use crate::environment::Environment;
 use crate::parser::{Expr, Literal, Stmt};
 use crate::tokens::TokenType;
 use crate::value::Value;
 
 struct InterpreterState {
-    runtime_error: bool
+    runtime_error: bool,
+    environment: Environment
 }
 
-impl InterpreterState {
+impl<'a> InterpreterState {
     fn runtime_error(&mut self, err: &LoxError) {
         self.runtime_error = true;
         println!("{}", err);
+    }
+
+    fn new() -> Self {
+        InterpreterState { runtime_error: false, environment: Environment::new() }
     }
 }
 
 pub struct Interpreter {
     statements: Vec<Stmt>,
-    state: InterpreterState
+    state: InterpreterState,
+    
 }
 
 impl Interpreter {
     pub fn new(statements: Vec<Stmt>) -> Self {
-        let state = InterpreterState { runtime_error: false };
+        let state = InterpreterState::new();
         Interpreter { 
             statements,
             state
@@ -46,13 +53,22 @@ impl Interpreter {
         errors
     }
 
-    fn evaluate(&self, stmt: &Stmt) -> Result<Option<Value>, LoxError> {
+    fn evaluate(&mut self, stmt: &Stmt) -> Result<Option<Value>, LoxError> {
         match stmt {
             Stmt::Expression(expr) => {
                 let value = self.evaluate_expr(expr)?;
                 Ok(Some(value))
             },
-            Stmt::Print(expr) => self.evaluate_print(expr)
+            Stmt::Print(expr) => self.evaluate_print(expr),
+            Stmt::Var(identifier_token, initializer) => {
+                if let TokenType::Identifier(name) = &identifier_token.token_type {
+                    let value = self.evaluate_expr(initializer)?;
+                    self.state.environment.define(name.to_string(), value);
+                    Ok(None)
+                } else {
+                    Err(LoxError::RuntimeError(identifier_token.location.clone(), format!("Expected identifier token for var name. {}", identifier_token)))
+                }
+            }
         }
     }
 
