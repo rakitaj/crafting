@@ -106,7 +106,7 @@ impl Parser {
                 }
             }
         }
-        return self.statement();
+        self.statement()
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {

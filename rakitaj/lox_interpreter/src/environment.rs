@@ -6,6 +6,12 @@ pub struct Environment {
     values: HashMap<String, Value>
 }
 
+impl Default for Environment {
+    fn default() -> Self {
+        Environment::new()
+    }
+}
+
 impl Environment {
     pub fn new() -> Self {
         Environment { values: HashMap::new() }
@@ -16,9 +22,6 @@ impl Environment {
     }
 
     pub fn get(&self, key: &str) -> Option<Value> {
-        match self.values.get(key) {
-            Some(x) => Some((*x).clone()),
-            None => None
-        }
+        self.values.get(key).cloned()
     } 
 }

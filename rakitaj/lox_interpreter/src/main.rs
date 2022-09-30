@@ -66,7 +66,7 @@ fn run(raw_source: String) {
     let tokens = source.scan_tokens();
     let mut parser = Parser::new(tokens);
     let ast = parser.parse().unwrap();
-    let mut interpreter = Interpreter::new(ast);
+    let interpreter = Interpreter::new(ast);
     interpreter.interpret();
 }
 
@@ -83,7 +83,7 @@ fn run_debug(raw_source: String) {
     
     println!("{}", parenthesize_statements(&ast));
     
-    let mut interpreter = Interpreter::new(ast);
+    let interpreter = Interpreter::new(ast);
     interpreter.interpret();
     
 }

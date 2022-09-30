@@ -6,23 +6,21 @@ use crate::value::Value;
 
 pub struct Interpreter {
     statements: Vec<Stmt>,
-    environment: Environment
-    
 }
 
 impl Interpreter {
     pub fn new(statements: Vec<Stmt>) -> Self {
-        let environment = Environment::new();
+        
         Interpreter { 
-            statements,
-            environment
+            statements
         }
     }
 
-    pub fn interpret(&mut self) -> Vec<LoxError> {
+    pub fn interpret(&self) -> Vec<LoxError> {
         let mut errors: Vec<LoxError> = Vec::new();
+        let mut environment = Environment::new();
         for stmt in &self.statements {
-            let result = self.evaluate(stmt);
+            let result = self.evaluate(stmt, &mut environment);
             match result {
                 Ok(x) => match x {
                     Some(y) => println!("{}", y),
@@ -37,7 +35,7 @@ impl Interpreter {
         errors
     }
 
-    fn evaluate(&mut self, stmt: &Stmt) -> Result<Option<Value>, LoxError> {
+    fn evaluate(&self, stmt: &Stmt, environment: &mut Environment) -> Result<Option<Value>, LoxError> {
         match stmt {
             Stmt::Expression(expr) => {
                 let value = self.evaluate_expr(expr)?;
@@ -47,7 +45,7 @@ impl Interpreter {
             Stmt::Var(identifier_token, initializer) => {
                 if let TokenType::Identifier(name) = &identifier_token.token_type {
                     let value = self.evaluate_expr(initializer)?;
-                    self.environment.define(name.to_string(), value);
+                    environment.define(name.to_string(), value);
                     Ok(None)
                 } else {
                     Err(LoxError::RuntimeError(identifier_token.location.clone(), format!("Expected identifier token for var name. {}", identifier_token)))
