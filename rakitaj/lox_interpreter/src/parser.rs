@@ -47,7 +47,7 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
         let mut statements: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            let stmt = self.statement()?;
+            let stmt = self.declaration()?;
             statements.push(stmt);
         }
         match statements.len() {
@@ -110,8 +110,7 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
-        // Todo: Consume any generic identifier
-        let name: &Token = self.consume(&TokenType::Identifier("How can I match any name".to_string()), "Still confused")?;
+        let name = self.consume_identifier("Trying to consume an identifier as part of a var declaration.")?;      
         let cloned_name = name.clone();
 
         let mut initializer: Option<Expr> = None;
@@ -121,7 +120,11 @@ impl Parser {
         self.consume(&TokenType::SemiColon, "Expect ';' after variable declaration.")?;
         match initializer {
             Some(x) => Ok(Stmt::Var(cloned_name, x)),
-            None => Ok(Stmt::Var(cloned_name, Expr::Literal(Location::Unknown, Literal::Nil)))
+            None => {
+                // If there is no initializer reuse the location of the var identifier for the literal nil token that we infer.
+                let nil_token_location = cloned_name.clone();
+                Ok(Stmt::Var(cloned_name, Expr::Literal(nil_token_location.location, Literal::Nil)))
+            }
         }
     }
 
@@ -238,7 +241,8 @@ impl Parser {
             },
             TokenType::Identifier(_) => {
                 self.current += 1;
-                expr = Some(Expr::Variable(self.previous().clone()))
+                //expr = Some(Expr::Variable(self.previous().clone()))
+                expr = Some(Expr::Variable(token.clone()))
             }
             _ => {}
         }
@@ -260,6 +264,18 @@ impl Parser {
             let msg = format!("{message}\nUnexpected token is {unexpected_token}");
             Err(LoxError::SyntaxError(unexpected_token.location, msg))
         }
+    }
+
+    fn consume_identifier(&mut self, message: &str) -> Result<&Token, LoxError> {
+        if let Some(token) = self.tokens.get(self.current) {
+            if let TokenType::Identifier(_) = &token.token_type {
+                self.current += 1;
+                return Ok(token);
+            }
+        }
+        let unexpected_token = self.tokens[self.current].clone();
+        let msg = format!("Tried to consume an identifier.\nUnexpected token is {unexpected_token}\n{message}");
+        Err(LoxError::SyntaxError(unexpected_token.location, msg))
     }
 
     fn synchronize(&mut self) {

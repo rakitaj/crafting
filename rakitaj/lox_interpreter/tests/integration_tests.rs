@@ -12,10 +12,10 @@ pub fn source_to_ast(source: &str, filename: String) -> Result<Vec<Stmt>, LoxErr
 }
 
 #[test]
-fn test_hardcoded_source_code_to_ast() {
+fn test_expression_to_ast() {
     let s = "(1 + 2) / 3 == 1;";
     let ast_result = source_to_ast(s, "integration-test.lox".to_string());
-    let expected_ast = 
+    let ast = 
     vec![Stmt::Expression(Expr::Binary(
         Box::new(
         Expr::Binary(
@@ -30,5 +30,15 @@ fn test_hardcoded_source_code_to_ast() {
         Token::new(TokenType::EqualEqual, loc(1)),
         Box::new(Expr::Literal(loc(1), Literal::Number(1.0)))))];
         
-    assert_eq!(ast_result.unwrap(), expected_ast)
+    assert_eq!(ast_result, Ok(ast))
+}
+
+#[test]
+fn test_variable_declaration() {
+    let s = "var foo;";
+    let ast_result = source_to_ast(s, "integration-test.lox".to_string());
+    let ast = vec![
+        Stmt::Var(Token::new(TokenType::Identifier("foo".to_string()), loc(1)), Expr::Literal(loc(1), Literal::Nil))
+    ];
+    assert_eq!(ast_result, Ok(ast));
 }
