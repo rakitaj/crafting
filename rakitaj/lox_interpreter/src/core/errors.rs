@@ -19,7 +19,7 @@ impl fmt::Display for LoxError {
         match self {
             LoxError::SyntaxError(location, msg) => write!(f, "Syntax Error\n{}\nLocation @ {}", msg, location),
             LoxError::RuntimeError(location, msg) => write!(f, "Runtime Error\n{}\nLocation @ {}", msg, location),
-            LoxError::Critical(msg) => write!(f, "\nCritical Error\n{}\nNo location can be determinded. Something really bad happened.", msg)
+            LoxError::Critical(msg) => write!(f, "\nCritical Error\n{}\nNo location can be determined. Something really bad happened.", msg)
         }
     }
 }

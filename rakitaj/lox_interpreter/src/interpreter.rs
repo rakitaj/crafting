@@ -1,7 +1,7 @@
 use crate::core::errors::LoxError;
 use crate::environment::Environment;
 use crate::parser::{Expr, Literal, Stmt};
-use crate::tokens::TokenType;
+use crate::tokens::{TokenType, Token};
 use crate::value::Value;
 
 pub struct Interpreter {
@@ -38,13 +38,13 @@ impl Interpreter {
     fn evaluate(&self, stmt: &Stmt, environment: &mut Environment) -> Result<Option<Value>, LoxError> {
         match stmt {
             Stmt::Expression(expr) => {
-                let value = self.evaluate_expr(expr)?;
+                let value = self.evaluate_expr(expr, environment)?;
                 Ok(Some(value))
             },
-            Stmt::Print(expr) => self.evaluate_print(expr),
+            Stmt::Print(expr) => self.evaluate_print(expr, environment),
             Stmt::Var(identifier_token, initializer) => {
                 if let TokenType::Identifier(name) = &identifier_token.token_type {
-                    let value = self.evaluate_expr(initializer)?;
+                    let value = self.evaluate_expr(initializer, environment)?;
                     environment.define(name.to_string(), value);
                     Ok(None)
                 } else {
@@ -54,13 +54,13 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_print(&self, expr: &Expr) -> Result<Option<Value>, LoxError> {
-        let value = self.evaluate_expr(expr)?;
+    fn evaluate_print(&self, expr: &Expr, environment: &Environment) -> Result<Option<Value>, LoxError> {
+        let value = self.evaluate_expr(expr, environment)?;
         println!("{}", value);
         Ok(None)
     }
 
-    fn evaluate_expr(&self, expr: &Expr) -> Result<Value, LoxError> {
+    fn evaluate_expr(&self, expr: &Expr, environment: &Environment) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal(_, literal) => {
                 match literal {
@@ -71,9 +71,9 @@ impl Interpreter {
                     Literal::String(string) => Ok(Value::String(string.to_string())),
                 }
             },
-            Expr::Grouping(grouping) => self.evaluate_expr(grouping),
+            Expr::Grouping(grouping) => self.evaluate_expr(grouping, environment),
             Expr::Unary(operator, unary) => {
-                let right: Value = self.evaluate_expr(unary)?;
+                let right: Value = self.evaluate_expr(unary, environment)?;
                 match operator.token_type {
                     TokenType::Minus => {
                         match right {
@@ -95,8 +95,8 @@ impl Interpreter {
                 }
             },
             Expr::Binary(left_expr, operator, right_expr) => {
-                let left = self.evaluate_expr(left_expr)?;
-                let right = self.evaluate_expr(right_expr)?;
+                let left = self.evaluate_expr(left_expr, environment)?;
+                let right = self.evaluate_expr(right_expr, environment)?;
                 match (left, right) {
                     (Value::Number(left_num), Value::Number(right_num)) => {
                         match operator.token_type {
@@ -130,6 +130,17 @@ impl Interpreter {
                             }
                         }
                     }
+                }
+            },
+            Expr::Variable(token) => {
+                match &token.token_type {
+                    TokenType::Identifier(variable_name) => {
+                        match environment.get(variable_name) {
+                            Some(val) => Ok(val),
+                            None => Err(LoxError::RuntimeError(token.location.clone(), format!("Undefined variable: {}", variable_name)))
+                        }
+                    },
+                    _ => Err(LoxError::RuntimeError(token.location.clone(), format!("Expected a variable expression. Got {}", token)))
                 }
             },
             _ => Err(LoxError::Critical("Shouldn't get here".to_string()))
