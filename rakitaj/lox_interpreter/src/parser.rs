@@ -14,6 +14,7 @@ pub enum Literal {
 
 #[derive(PartialEq, Debug)]
 pub enum Expr {
+    Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(Location, Literal),
@@ -149,7 +150,21 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, LoxError> {
+        let expr = self.equality()?;
+        if self.match_token_type(&[TokenType::Equal]) {
+            let location = self.previous().location.clone();
+            let value = self.assignment()?;
+
+            return match expr {
+                Expr::Variable(token) => Ok(Expr::Assign(token, Box::new(value))),
+                _ => Err(LoxError::RuntimeError(location, "Invalid assignment target".to_string()))
+            }
+        }
+        Ok(expr)        
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {
@@ -317,7 +332,8 @@ pub fn parenthesize(expr: &Expr) -> String {
         Expr::Unary(token, expr) => format!("({} {})", token.token_type, parenthesize(expr)),
         Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(expr_left), parenthesize(expr_right)),
         Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right)),
-        Expr::Variable(var_identifier) => format!("var {}", var_identifier)
+        Expr::Variable(var_identifier) => format!("var {}", var_identifier),
+        Expr::Assign(token, expr) => format!("({} = {})", token, parenthesize(expr))
     }
 }
 

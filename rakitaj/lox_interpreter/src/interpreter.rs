@@ -1,7 +1,7 @@
 use crate::core::errors::LoxError;
 use crate::environment::Environment;
 use crate::parser::{Expr, Literal, Stmt};
-use crate::tokens::{TokenType, Token};
+use crate::tokens::TokenType;
 use crate::value::Value;
 
 pub struct Interpreter {
@@ -22,10 +22,7 @@ impl Interpreter {
         for stmt in &self.statements {
             let result = self.evaluate(stmt, &mut environment);
             match result {
-                Ok(x) => match x {
-                    Some(y) => println!("{}", y),
-                    None => println!("No value returned. No errors.")
-                },
+                Ok(x) => if let Some(y) = x { println!("{}", y) }
                 Err(err) => {
                     println!("Error: {}", err);
                     errors.push(err);
@@ -143,7 +140,7 @@ impl Interpreter {
                     _ => Err(LoxError::RuntimeError(token.location.clone(), format!("Expected a variable expression. Got {}", token)))
                 }
             },
-            _ => Err(LoxError::Critical("Shouldn't get here".to_string()))
+            _ => Err(LoxError::Critical("Happening in the interpreter.".to_string()))
         }
     }    
 }

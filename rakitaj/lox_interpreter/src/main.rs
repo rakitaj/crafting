@@ -39,7 +39,7 @@ fn print_help() {
 
 fn run_file(filepath: &str) {
     let raw_source = load_source(filepath);
-    run(raw_source)
+    run(raw_source);
     
 }
 

@@ -59,6 +59,7 @@ impl fmt::Display for TokenType {
         match &self {
             TokenType::Star => write!(f, "*"),
             TokenType::Minus => write!(f, "-"),
+            TokenType::Identifier(name) => write!(f, "{}", name),
             _ => write!(f, "{:?}", self)
         }
         
