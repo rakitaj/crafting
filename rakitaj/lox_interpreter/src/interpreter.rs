@@ -51,13 +51,13 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_print(&self, expr: &Expr, environment: &Environment) -> Result<Option<Value>, LoxError> {
+    fn evaluate_print(&self, expr: &Expr, environment: &mut Environment) -> Result<Option<Value>, LoxError> {
         let value = self.evaluate_expr(expr, environment)?;
         println!("{}", value);
         Ok(None)
     }
 
-    fn evaluate_expr(&self, expr: &Expr, environment: &Environment) -> Result<Value, LoxError> {
+    fn evaluate_expr(&self, expr: &Expr, environment: &mut Environment) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal(_, literal) => {
                 match literal {
@@ -140,6 +140,16 @@ impl Interpreter {
                     _ => Err(LoxError::RuntimeError(token.location.clone(), format!("Expected a variable expression. Got {}", token)))
                 }
             },
+            Expr::Assign(token, expr) => {
+                let value = self.evaluate_expr(expr, environment)?;
+                match &token.token_type {
+                    TokenType::Identifier(name) => {
+                        environment.assign(name.to_string(), value.clone(), token.location.clone())?;
+                        Ok(value)
+                    },
+                    _ => Err(LoxError::RuntimeError(token.location.clone(), format!("")))
+                }
+            }
             _ => Err(LoxError::Critical("Happening in the interpreter.".to_string()))
         }
     }    

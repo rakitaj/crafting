@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::Entry};
 
-use crate::{value::Value, core::errors::LoxError};
+use crate::{value::Value, core::{errors::LoxError, location::Location}};
 
 pub struct Environment {
     values: HashMap<String, Value>
@@ -25,11 +25,13 @@ impl Environment {
         self.values.get(key).cloned()
     }
 
-    pub fn assign(&mut self, key: String, value: Value) -> Result<(), LoxError> {
-        if self.values.contains_key(&key) {
-            self.values.insert(key, value);
-        } else {
-            return LoxError::RuntimeError((), format!("Undefined variable: {}", key))
-        }
+    pub fn assign(&mut self, key: String, value: Value, location: Location) -> Result<Value, LoxError> {
+        match self.values.entry(key.clone()) {
+            Entry::Occupied(mut e) => {
+                e.insert(value.clone());
+                Ok(value)
+            }
+            _ => Err(LoxError::RuntimeError(location, format!("Undefined variable: {}", key))),
+        } 
     }
 }
