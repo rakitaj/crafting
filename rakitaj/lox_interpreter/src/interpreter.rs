@@ -18,7 +18,7 @@ impl Interpreter {
 
     pub fn interpret(&self) -> Vec<LoxError> {
         let mut errors: Vec<LoxError> = Vec::new();
-        let mut environment = Environment::new();
+        let mut environment = Environment::new_global();
         for stmt in &self.statements {
             let result = self.evaluate(stmt, &mut environment);
             match result {
@@ -147,7 +147,7 @@ impl Interpreter {
                         environment.assign(name.to_string(), value.clone(), token.location.clone())?;
                         Ok(value)
                     },
-                    _ => Err(LoxError::RuntimeError(token.location.clone(), format!("")))
+                    _ => Err(LoxError::RuntimeError(token.location.clone(), "Assignment didn't work".to_string()))
                 }
             }
             _ => Err(LoxError::Critical("Happening in the interpreter.".to_string()))

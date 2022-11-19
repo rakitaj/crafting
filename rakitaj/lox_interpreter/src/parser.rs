@@ -359,7 +359,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_no_token_should_be_critical_error() {
+    fn test_no_token_should_be_critical_error() {
         let tokens: Vec<Token> = Vec::new();
         let mut parser = Parser::new(tokens);
         let error = LoxError::Critical("No tokens parsed.".to_string());
