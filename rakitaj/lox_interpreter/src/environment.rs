@@ -39,8 +39,13 @@ impl Environment {
             Entry::Occupied(mut e) => {
                 e.insert(value.clone());
                 Ok(value)
+            },
+            _ => {
+                match &mut self.enclosing {
+                    Some(boxed_env) => (*boxed_env).assign(key, value, location),
+                    None => Err(LoxError::RuntimeError(location, format!("Undefined variable: {}", key))),
+                }
             }
-            _ => Err(LoxError::RuntimeError(location, format!("Undefined variable: {}", key))),
         } 
     }
 }
