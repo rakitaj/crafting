@@ -27,7 +27,8 @@ pub enum Expr {
 pub enum Stmt {
     Expression(Expr),
     Print(Expr),
-    Var(Token, Expr)
+    Var(Token, Expr),
+    Block(Vec<Stmt>)
 }
 
 #[derive(PartialEq)]
@@ -132,9 +133,24 @@ impl Parser {
     fn statement(&mut self) -> Result<Stmt, LoxError> {
         if self.match_token_type(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.match_token_type(&[TokenType::LeftBrace]) {
+            let block = self.block()?;
+            Ok(Stmt::Block(block))
         } else {
             self.expression_statement()
         }
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt>, LoxError> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() && !self.check(&TokenType::RightBrace) {
+            let stmt = self.declaration()?;
+            statements.push(stmt);
+        }
+
+        let _ = self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
+
+        Ok(statements)
     }
 
     fn print_statement(&mut self) -> Result<Stmt, LoxError> {

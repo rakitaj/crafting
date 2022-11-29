@@ -3,50 +3,63 @@ use std::collections::{HashMap, hash_map::Entry};
 use crate::{value::Value, core::{errors::LoxError, location::Location}};
 
 pub struct Environment {
-    values: HashMap<String, Value>,
-    enclosing: Option<Box<Environment>>
+    scopes: Vec<HashMap<String, Value>>,
+    index: usize
 }
 
 impl Default for Environment {
     fn default() -> Self {
-        Environment::new_global()
+        Environment::new()
     }
 }
 
 impl Environment {
-    pub fn new_global() -> Self {
-        Environment { values: HashMap::new(), enclosing: None }
+
+    pub fn new() -> Self {
+        // let mut scopes_list: Vec<HashMap<String, Value>> = Vec::new();
+        // scopes_list.push(HashMap::new());
+        let scopes_list: Vec<HashMap<String, Value>> = vec![HashMap::new()];
+        Environment { scopes: scopes_list, index: 0 }
     }
 
-    pub fn new(enclosing_env: Box<Environment>) -> Self {
-        Environment { values: HashMap::new(), enclosing: Some(enclosing_env) }
+    pub fn new_child_scope(&mut self) {
+        self.scopes.push(HashMap::new());
+        self.index += 1;
+    }
+
+    pub fn destroy_child_scope(&mut self) {
+        match self.scopes.pop() {
+            Some(_) => (),
+            _ => panic!("Internal error popping the child scope.") 
+        }
+        self.index -= 1;
     }
 
     pub fn define(&mut self, key: String, value: Value) {
-        self.values.insert(key, value);
+        let current_scope = &mut self.scopes[self.index];
+        current_scope.insert(key, value);
     }
 
     pub fn get(&self, key: &str) -> Option<Value> {
-        let local_value = self.values.get(key);
-        if local_value.is_none() && self.enclosing.is_some() {
-            return self.enclosing.as_ref().unwrap().get(key);
+        for i in (0..=self.index).rev() {
+            let current_scope = &self.scopes[i];
+            let value = current_scope.get(key);
+            if let Some(x) = value {
+                return Some(x.clone())
+            }
         }
-        local_value.cloned()
+        None
     }
 
-    pub fn assign(&mut self, key: String, value: Value, location: Location) -> Result<Value, LoxError> {
-        match self.values.entry(key.clone()) {
-            Entry::Occupied(mut e) => {
+    pub fn assign(&mut self, key: &str, value: Value, location: Location) -> Result<Value, LoxError> {
+        for i in (0..=self.index).rev() {
+            let current_scope = &mut self.scopes[i];
+            if let Entry::Occupied(mut e) = current_scope.entry(key.to_string()) {
                 e.insert(value.clone());
-                Ok(value)
-            },
-            _ => {
-                match &mut self.enclosing {
-                    Some(boxed_env) => (*boxed_env).assign(key, value, location),
-                    None => Err(LoxError::RuntimeError(location, format!("Undefined variable: {}", key))),
-                }
+                return Ok(value)
             }
-        } 
+        }
+        Err(LoxError::RuntimeError(location, format!("Undefined variable: {}", key)))
     }
 }
 
@@ -60,7 +73,7 @@ mod tests {
     #[case("bar", None)]
     #[case("baz", Some(Value::Nil))]
     fn test_set_and_get_variable(#[case] name: &str, #[case] value: Option<Value>) {
-        let mut env = Environment::new_global();
+        let mut env = Environment::new();
         match &value {
             Some(x) => env.define(name.to_string(), x.clone()),
             None => {}
@@ -70,35 +83,35 @@ mod tests {
 
     #[test]
     fn test_get_variable_from_enclosing_env() {
-        let mut global_env = Environment::new_global();
-        global_env.define("foo".to_string(), Value::Number(42.0));
-        let local_env = Environment::new(Box::new(global_env));
-        assert_eq!(Some(Value::Number(42.0)), local_env.get("foo"))
+        let mut env = Environment::new();
+        env.define("foo".to_string(), Value::Number(42.0));
+        env.new_child_scope();
+        assert_eq!(Some(Value::Number(42.0)), env.get("foo"))
     }
 
     #[test]
     fn test_get_nonexistant_variable_from_enclosing_env() {
-        let global_env = Environment::new_global();
-        let local_env = Environment::new(Box::new(global_env));
-        assert_eq!(None, local_env.get("foo"))
+        let mut env = Environment::new();
+        env.new_child_scope();
+        assert_eq!(None, env.get("foo"))
     }
 
     #[test]
     fn test_variable_assignment() {
-        let mut env = Environment::new_global();
+        let mut env = Environment::new();
         env.define("foo".to_string(), Value::Number(12.1));
-        let result = env.assign("foo".to_string(), Value::Number(45.0), Location::Line("testfile.lox".to_string(), 85));
+        let result = env.assign("foo", Value::Number(45.0), Location::Line("testfile.lox".to_string(), 85));
         assert_eq!(result, Ok(Value::Number(45.0)));
         assert_eq!(env.get("foo"), Some(Value::Number(45.0)));
     }
 
     #[test]
     fn test_enclosed_variable_assignment() {
-        let mut global_env = Environment::new_global();
-        global_env.define("foo".to_string(), Value::Number(42.0));
-        let mut local_env = Environment::new(Box::new(global_env));
-        let result = local_env.assign("foo".to_string(), Value::Number(45.0), Location::Line("testfile.lox".to_string(), 85));
+        let mut env = Environment::new();
+        env.define("foo".to_string(), Value::Number(42.0));
+        env.new_child_scope();
+        let result = env.assign("foo", Value::Number(45.0), Location::Line("testfile.lox".to_string(), 85));
         assert_eq!(result, Ok(Value::Number(45.0)));
-        assert_eq!(local_env.get("foo"), Some(Value::Number(45.0)));
+        assert_eq!(env.get("foo"), Some(Value::Number(45.0)));
     }
 }

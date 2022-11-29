@@ -18,7 +18,7 @@ impl Interpreter {
 
     pub fn interpret(&self) -> Vec<LoxError> {
         let mut errors: Vec<LoxError> = Vec::new();
-        let mut environment = Environment::new_global();
+        let mut environment = Environment::new();
         for stmt in &self.statements {
             let result = self.evaluate(stmt, &mut environment);
             match result {
@@ -47,8 +47,20 @@ impl Interpreter {
                 } else {
                     Err(LoxError::RuntimeError(identifier_token.location.clone(), format!("Expected identifier token for var name. {}", identifier_token)))
                 }
+            },
+            Stmt::Block(statements) => {
+                environment.new_child_scope();
+                self.execute_block(statements, environment)?;
+                Ok(None)
             }
         }
+    }
+
+    fn execute_block(&self, statements: &Vec<Stmt>, environment: &mut Environment) -> Result<(), LoxError> {
+        for stmt in statements {
+            self.evaluate(stmt, environment)?;
+        }
+        Ok(())
     }
 
     fn evaluate_print(&self, expr: &Expr, environment: &mut Environment) -> Result<Option<Value>, LoxError> {
@@ -144,7 +156,7 @@ impl Interpreter {
                 let value = self.evaluate_expr(expr, environment)?;
                 match &token.token_type {
                     TokenType::Identifier(name) => {
-                        environment.assign(name.to_string(), value.clone(), token.location.clone())?;
+                        environment.assign(name, value.clone(), token.location.clone())?;
                         Ok(value)
                     },
                     _ => Err(LoxError::RuntimeError(token.location.clone(), "Assignment didn't work".to_string()))
