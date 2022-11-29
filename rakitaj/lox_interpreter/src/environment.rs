@@ -16,8 +16,6 @@ impl Default for Environment {
 impl Environment {
 
     pub fn new() -> Self {
-        // let mut scopes_list: Vec<HashMap<String, Value>> = Vec::new();
-        // scopes_list.push(HashMap::new());
         let scopes_list: Vec<HashMap<String, Value>> = vec![HashMap::new()];
         Environment { scopes: scopes_list, index: 0 }
     }

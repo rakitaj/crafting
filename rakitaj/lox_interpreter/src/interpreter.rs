@@ -51,6 +51,7 @@ impl Interpreter {
             Stmt::Block(statements) => {
                 environment.new_child_scope();
                 self.execute_block(statements, environment)?;
+                environment.destroy_child_scope();
                 Ok(None)
             }
         }
