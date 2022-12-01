@@ -53,6 +53,17 @@ impl Interpreter {
                 self.execute_block(statements, environment)?;
                 environment.destroy_child_scope();
                 Ok(None)
+            },
+            Stmt::If(condition, left_stmt, right_stmt) => {
+                match self.evaluate_expr(condition, environment)?.is_truthy() {
+                    true => self.evaluate(left_stmt, environment),
+                    false => {
+                        match right_stmt {
+                            Some(x) => self.evaluate(x, environment),
+                            None => Ok(None)
+                        }
+                    }
+                }
             }
         }
     }

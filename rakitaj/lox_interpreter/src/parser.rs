@@ -28,7 +28,8 @@ pub enum Stmt {
     Expression(Expr),
     Print(Expr),
     Var(Token, Expr),
-    Block(Vec<Stmt>)
+    Block(Vec<Stmt>),
+    If(Expr, Box<Stmt>, Option<Box<Stmt>>)
 }
 
 #[derive(PartialEq)]
@@ -133,12 +134,30 @@ impl Parser {
     fn statement(&mut self) -> Result<Stmt, LoxError> {
         if self.match_token_type(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.match_token_type(&[TokenType::If]) {
+            self.if_statement()
         } else if self.match_token_type(&[TokenType::LeftBrace]) {
             let block = self.block()?;
             Ok(Stmt::Block(block))
         } else {
             self.expression_statement()
         }
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt, LoxError> {
+        self.consume(&TokenType::LeftParen, "Expect '(' after if.")?;
+        let condition = self.expression()?;
+        self.consume(&TokenType::RightParen, "Expect ')' after if condition.")?;
+
+        let then_branch = self.statement()?;
+        
+        if self.match_token_type(&[TokenType::Else]) {
+            let else_branch_stmt = self.statement()?;
+            let elee_branch = Some(Box::new(else_branch_stmt));
+            return Ok(Stmt::If(condition, Box::new(then_branch), elee_branch));
+        }
+
+        Ok(Stmt::If(condition, Box::new(then_branch), None))
     }
 
     fn block(&mut self) -> Result<Vec<Stmt>, LoxError> {
