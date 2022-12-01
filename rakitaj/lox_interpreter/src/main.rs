@@ -4,7 +4,7 @@ use std::io;
 use std::io::prelude::*;
 
 use lox_interpreter::interpreter::Interpreter;
-use lox_interpreter::parser::parenthesize;
+use lox_interpreter::parser::parenthesize_statements;
 use lox_interpreter::scanner::SourceCode;
 use lox_interpreter::parser::Parser;
 
@@ -39,7 +39,7 @@ fn print_help() {
 
 fn run_file(filepath: &str) {
     let raw_source = load_source(filepath);
-    run(raw_source)
+    run(raw_source);
     
 }
 
@@ -65,9 +65,13 @@ fn run(raw_source: String) {
     let mut source = SourceCode::new(&raw_source, "repl.lox".to_string());
     let tokens = source.scan_tokens();
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse().unwrap();
-    let interpreter = Interpreter::new(ast);
-    interpreter.interpret();
+    match parser.parse() {
+        Ok(ast) => {
+            let interpreter = Interpreter::new(ast);
+            interpreter.interpret();
+        },
+        Err(err) => println!("Lox error:\n{}", err)
+    }
 }
 
 fn run_debug(raw_source: String) {
@@ -79,13 +83,14 @@ fn run_debug(raw_source: String) {
     }
     
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse().unwrap();
-    
-    println!("{}", parenthesize(&ast));
-    
-    let interpreter = Interpreter::new(ast);
-    interpreter.interpret();
-    
+    match parser.parse() {
+        Ok(ast) => {
+            println!("{}", parenthesize_statements(&ast));
+            let interpreter = Interpreter::new(ast);
+            interpreter.interpret();
+        },
+        Err(err) => println!("Lox error:\n{}", err)
+    }
 }
 
 fn load_source(filepath: &str) -> String {

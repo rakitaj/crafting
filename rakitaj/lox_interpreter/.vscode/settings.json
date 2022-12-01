@@ -1,4 +1,5 @@
 {
     "extensions.ignoreRecommendations": true,
-    "rust-analyzer.checkOnSave.command": "clippy"
+    "rust-analyzer.checkOnSave.command": "clippy",
+    "rust-analyzer.debug.engine": "auto"
 }

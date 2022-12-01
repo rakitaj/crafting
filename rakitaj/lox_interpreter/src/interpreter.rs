@@ -1,35 +1,76 @@
 use crate::core::errors::LoxError;
-use crate::parser::{Expr, Literal};
+use crate::environment::Environment;
+use crate::parser::{Expr, Literal, Stmt};
 use crate::tokens::TokenType;
 use crate::value::Value;
 
 pub struct Interpreter {
-    root_expr: Expr,
-    runtime_error: bool
+    statements: Vec<Stmt>,
 }
 
 impl Interpreter {
-    pub fn new(root_expr: Expr) -> Self {
+    pub fn new(statements: Vec<Stmt>) -> Self {
+        
         Interpreter { 
-            root_expr, 
-            runtime_error: false 
+            statements
         }
     }
 
-    pub fn interpret(mut self) {
-        let result = self.evaluate(&self.root_expr);
-        match result {
-            Ok(x) => println!("{}", x),
-            Err(err) => self.runtime_error(&err)
+    pub fn interpret(&self) -> Vec<LoxError> {
+        let mut errors: Vec<LoxError> = Vec::new();
+        let mut environment = Environment::new();
+        for stmt in &self.statements {
+            let result = self.evaluate(stmt, &mut environment);
+            match result {
+                Ok(x) => if let Some(y) = x { println!("{}", y) }
+                Err(err) => {
+                    println!("Error: {}", err);
+                    errors.push(err);
+                }
+            }
+        }
+        errors
+    }
+
+    fn evaluate(&self, stmt: &Stmt, environment: &mut Environment) -> Result<Option<Value>, LoxError> {
+        match stmt {
+            Stmt::Expression(expr) => {
+                let value = self.evaluate_expr(expr, environment)?;
+                Ok(Some(value))
+            },
+            Stmt::Print(expr) => self.evaluate_print(expr, environment),
+            Stmt::Var(identifier_token, initializer) => {
+                if let TokenType::Identifier(name) = &identifier_token.token_type {
+                    let value = self.evaluate_expr(initializer, environment)?;
+                    environment.define(name.to_string(), value);
+                    Ok(None)
+                } else {
+                    Err(LoxError::RuntimeError(identifier_token.location.clone(), format!("Expected identifier token for var name. {}", identifier_token)))
+                }
+            },
+            Stmt::Block(statements) => {
+                environment.new_child_scope();
+                self.execute_block(statements, environment)?;
+                environment.destroy_child_scope();
+                Ok(None)
+            }
         }
     }
 
-    fn runtime_error(&mut self, err: &LoxError) {
-        self.runtime_error = true;
-        println!("{}", err);
+    fn execute_block(&self, statements: &Vec<Stmt>, environment: &mut Environment) -> Result<(), LoxError> {
+        for stmt in statements {
+            self.evaluate(stmt, environment)?;
+        }
+        Ok(())
     }
 
-    fn evaluate(&self, expr: &Expr) -> Result<Value, LoxError> {
+    fn evaluate_print(&self, expr: &Expr, environment: &mut Environment) -> Result<Option<Value>, LoxError> {
+        let value = self.evaluate_expr(expr, environment)?;
+        println!("{}", value);
+        Ok(None)
+    }
+
+    fn evaluate_expr(&self, expr: &Expr, environment: &mut Environment) -> Result<Value, LoxError> {
         match expr {
             Expr::Literal(_, literal) => {
                 match literal {
@@ -40,9 +81,9 @@ impl Interpreter {
                     Literal::String(string) => Ok(Value::String(string.to_string())),
                 }
             },
-            Expr::Grouping(grouping) => self.evaluate(grouping),
+            Expr::Grouping(grouping) => self.evaluate_expr(grouping, environment),
             Expr::Unary(operator, unary) => {
-                let right: Value = self.evaluate(unary)?;
+                let right: Value = self.evaluate_expr(unary, environment)?;
                 match operator.token_type {
                     TokenType::Minus => {
                         match right {
@@ -64,8 +105,8 @@ impl Interpreter {
                 }
             },
             Expr::Binary(left_expr, operator, right_expr) => {
-                let left = self.evaluate(left_expr)?;
-                let right = self.evaluate(right_expr)?;
+                let left = self.evaluate_expr(left_expr, environment)?;
+                let right = self.evaluate_expr(right_expr, environment)?;
                 match (left, right) {
                     (Value::Number(left_num), Value::Number(right_num)) => {
                         match operator.token_type {
@@ -101,7 +142,28 @@ impl Interpreter {
                     }
                 }
             },
-            _ => Err(LoxError::Critical("Shouldn't get here".to_string()))
+            Expr::Variable(token) => {
+                match &token.token_type {
+                    TokenType::Identifier(variable_name) => {
+                        match environment.get(variable_name) {
+                            Some(val) => Ok(val),
+                            None => Err(LoxError::RuntimeError(token.location.clone(), format!("Undefined variable: {}", variable_name)))
+                        }
+                    },
+                    _ => Err(LoxError::RuntimeError(token.location.clone(), format!("Expected a variable expression. Got {}", token)))
+                }
+            },
+            Expr::Assign(token, expr) => {
+                let value = self.evaluate_expr(expr, environment)?;
+                match &token.token_type {
+                    TokenType::Identifier(name) => {
+                        environment.assign(name, value.clone(), token.location.clone())?;
+                        Ok(value)
+                    },
+                    _ => Err(LoxError::RuntimeError(token.location.clone(), "Assignment didn't work".to_string()))
+                }
+            }
+            _ => Err(LoxError::Critical("Happening in the interpreter.".to_string()))
         }
-    }
+    }    
 }

@@ -1,5 +1,4 @@
 use crate::core::location::Location;
-use crate::scanner::SourceCode;
 use crate::tokens::Token;
 use crate::tokens::TokenType;
 use crate::core::errors::LoxError;
@@ -15,14 +14,21 @@ pub enum Literal {
 
 #[derive(PartialEq, Debug)]
 pub enum Expr {
-    Literal(Location, Literal),
-
-    Grouping(Box<Expr>),
-
-    Unary(Token, Box<Expr>),
-
+    Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
-    Ternary(Box<Expr>, Box<Expr>, Box<Expr>)
+    Grouping(Box<Expr>),
+    Literal(Location, Literal),
+    Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
+    Unary(Token, Box<Expr>),
+    Variable(Token)
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Stmt {
+    Expression(Expr),
+    Print(Expr),
+    Var(Token, Expr),
+    Block(Vec<Stmt>)
 }
 
 #[derive(PartialEq)]
@@ -40,8 +46,17 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, LoxError> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            let stmt = self.declaration()?;
+            statements.push(stmt);
+        }
+        match statements.len() {
+            0 => Err(LoxError::Critical("No tokens parsed.".to_string())),
+            _ => Ok(statements)
+        }
+        
     }
 
     fn previous(&self) -> &Token {
@@ -83,8 +98,89 @@ impl Parser {
         false
     }
 
+    fn declaration(&mut self) -> Result<Stmt, LoxError> {
+        if self.match_token_type(&[TokenType::Var]) {
+            match self.var_declaration() {
+                Ok(x) => return Ok(x),
+                Err(err) => {
+                    self.synchronize();
+                    return Err(err);
+                }
+            }
+        }
+        self.statement()
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
+        let name = self.consume_identifier("Trying to consume an identifier as part of a var declaration.")?;      
+        let cloned_name = name.clone();
+
+        let mut initializer: Option<Expr> = None;
+        if self.match_token_type(&[TokenType::Equal]) {
+            initializer = Some(self.expression()?);
+        }
+        self.consume(&TokenType::SemiColon, "Expect ';' after variable declaration.")?;
+        match initializer {
+            Some(x) => Ok(Stmt::Var(cloned_name, x)),
+            None => {
+                // If there is no initializer reuse the location of the var identifier for the literal nil token that we infer.
+                let nil_token_location = cloned_name.clone();
+                Ok(Stmt::Var(cloned_name, Expr::Literal(nil_token_location.location, Literal::Nil)))
+            }
+        }
+    }
+
+    fn statement(&mut self) -> Result<Stmt, LoxError> {
+        if self.match_token_type(&[TokenType::Print]) {
+            self.print_statement()
+        } else if self.match_token_type(&[TokenType::LeftBrace]) {
+            let block = self.block()?;
+            Ok(Stmt::Block(block))
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt>, LoxError> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() && !self.check(&TokenType::RightBrace) {
+            let stmt = self.declaration()?;
+            statements.push(stmt);
+        }
+
+        let _ = self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
+
+        Ok(statements)
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, LoxError> {
+        let expr = self.expression()?;
+        self.consume(&TokenType::SemiColon, "Expect ; after value.")?;
+        Ok(Stmt::Print(expr))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
+        let expr = self.expression()?;
+        self.consume(&TokenType::SemiColon, "Expect ; after value.")?;
+        Ok(Stmt::Expression(expr))
+    }
+
     fn expression(&mut self) -> Result<Expr, LoxError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, LoxError> {
+        let expr = self.equality()?;
+        if self.match_token_type(&[TokenType::Equal]) {
+            let location = self.previous().location.clone();
+            let value = self.assignment()?;
+
+            return match expr {
+                Expr::Variable(token) => Ok(Expr::Assign(token, Box::new(value))),
+                _ => Err(LoxError::RuntimeError(location, "Invalid assignment target".to_string()))
+            }
+        }
+        Ok(expr)        
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {
@@ -144,7 +240,7 @@ impl Parser {
         let mut expr: Option<Expr> = None;
 
         let token = self.tokens.get(self.current)
-            .ok_or_else(|| LoxError::SyntaxError(Location::Unknown, "No token".to_string()))?;
+            .ok_or_else(|| LoxError::SyntaxError(Location::Unknown, format!("Token get out of index i={}", self.current)))?;
         let location = token.location.clone();
 
         match &(token.token_type) {
@@ -173,6 +269,11 @@ impl Parser {
                 let expr_result = self.expression()?;
                 self.consume(&TokenType::RightParen, "Expect ')' after expression. After the expression finishes parsing the next token type must be a RightParen.")?;
                 expr = Some(Expr::Grouping(Box::new(expr_result)));
+            },
+            TokenType::Identifier(_) => {
+                self.current += 1;
+                //expr = Some(Expr::Variable(self.previous().clone()))
+                expr = Some(Expr::Variable(token.clone()))
             }
             _ => {}
         }
@@ -186,15 +287,26 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<(), LoxError> {
+    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<&Token, LoxError> {
         if self.check(token_type) {
-            self.advance();
-            Ok(())
+            Ok(self.advance())
         } else {
             let unexpected_token = self.tokens[self.current].clone();
             let msg = format!("{message}\nUnexpected token is {unexpected_token}");
             Err(LoxError::SyntaxError(unexpected_token.location, msg))
         }
+    }
+
+    fn consume_identifier(&mut self, message: &str) -> Result<&Token, LoxError> {
+        if let Some(token) = self.tokens.get(self.current) {
+            if let TokenType::Identifier(_) = &token.token_type {
+                self.current += 1;
+                return Ok(token);
+            }
+        }
+        let unexpected_token = self.tokens[self.current].clone();
+        let msg = format!("Tried to consume an identifier.\nUnexpected token is {unexpected_token}\n{message}");
+        Err(LoxError::SyntaxError(unexpected_token.location, msg))
     }
 
     fn synchronize(&mut self) {
@@ -215,11 +327,14 @@ impl Parser {
     }
 }
 
-pub fn source_to_ast(source: &str, filename: String) -> Result<Expr, LoxError> {
-    let mut source_code = SourceCode::new(source, filename);
-    let tokens = source_code.scan_tokens();
-    let mut parser = Parser::new(tokens);
-    parser.parse()
+pub fn parenthesize_statements(statements: &[Stmt]) -> String {
+    let mut strings: Vec<String> = Vec::new();
+    for stmt in statements {
+        if let Stmt::Expression(expr) = stmt {
+            strings.push(parenthesize(expr));
+        }
+    }
+    strings.join("\n")
 }
 
 pub fn parenthesize(expr: &Expr) -> String {
@@ -232,7 +347,9 @@ pub fn parenthesize(expr: &Expr) -> String {
         Expr::Grouping(expr) => format!("(group {})", parenthesize(expr)),
         Expr::Unary(token, expr) => format!("({} {})", token.token_type, parenthesize(expr)),
         Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(expr_left), parenthesize(expr_right)),
-        Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right))
+        Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right)),
+        Expr::Variable(var_identifier) => format!("var {}", var_identifier),
+        Expr::Assign(token, expr) => format!("({} = {})", token, parenthesize(expr))
     }
 }
 
@@ -258,11 +375,12 @@ mod tests {
     }
 
     #[test]
-    pub fn test_no_token_should_be_parse_error() {
+    fn test_no_token_should_be_critical_error() {
         let tokens: Vec<Token> = Vec::new();
         let mut parser = Parser::new(tokens);
-        let error = Err(LoxError::SyntaxError(Location::Unknown, "No token".to_string()));
-        assert_eq!(parser.parse(), error);
+        let error = LoxError::Critical("No tokens parsed.".to_string());
+        let actual_error = parser.parse().unwrap_err();
+        assert_eq!(actual_error, error);
     }
 
     #[test]
@@ -285,13 +403,16 @@ mod tests {
             Token::new(TokenType::True, loc(1)),
             Token::new(TokenType::EqualEqual, loc(1)),
             Token::new(TokenType::False, loc(1)),
-            Token::new(TokenType::Eof, loc(1))
+            Token::new(TokenType::SemiColon, loc(1)),
+            Token::new(TokenType::Eof, loc(1)),
         ];
+
         let expected_ast = 
-            Expr::Binary(Box::new(
+            vec![Stmt::Expression(Expr::Binary(Box::new(
                 Expr::Literal(loc(1), Literal::True)), 
                 Token::new(TokenType::EqualEqual, loc(1)), 
-                Box::new(Expr::Literal(loc(1), Literal::False)));
+                Box::new(Expr::Literal(loc(1), Literal::False))))];
+
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);
@@ -305,15 +426,19 @@ mod tests {
             Token::new(TokenType::Number(1f32), loc(1)),
             Token::new(TokenType::Plus, loc(1)),
             Token::new(TokenType::Number(2f32), loc(1)),
-            Token::new(TokenType::RightParen, loc(1))
+            Token::new(TokenType::RightParen, loc(1)),
+            Token::new(TokenType::SemiColon, loc(1)),
+            Token::new(TokenType::Eof, loc(1)),
         ];
+
         let expected_ast = 
-            Expr::Grouping(Box::new(
+            vec![Stmt::Expression(Expr::Grouping(Box::new(
                 Expr::Binary(
                     Box::new(Expr::Literal(loc(1), Literal::Number(1.0))), 
                     Token::new(TokenType::Plus, loc(1)), 
                     Box::new(Expr::Literal(loc(1), Literal::Number(2.0)))
-            )));
+            ))))];
+            
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);
@@ -332,10 +457,12 @@ mod tests {
             Token::new(TokenType::Number(3f32), loc(1)),
             Token::new(TokenType::EqualEqual, loc(1)),
             Token::new(TokenType::Number(9f32), loc(1)),
+            Token::new(TokenType::SemiColon, loc(1)),
             Token::new(TokenType::Eof, loc(1))
         ];
+
         let expected_ast = 
-            Expr::Binary(
+            vec![Stmt::Expression(Expr::Binary(
                 Box::new(
                 Expr::Binary(
                     Box::new(
@@ -347,7 +474,8 @@ mod tests {
                     Token::new(TokenType::Star, loc(1)),
                     Box::new(Expr::Literal(loc(1), Literal::Number(3.0))))),
                 Token::new(TokenType::EqualEqual, loc(1)),
-                Box::new(Expr::Literal(loc(1), Literal::Number(9.0))));
+                Box::new(Expr::Literal(loc(1), Literal::Number(9.0)))))];
+            
         let mut parser = Parser::new(tokens);
         let actual_ast = parser.parse();
         assert_eq!(actual_ast.unwrap(), expected_ast);
