@@ -4,6 +4,7 @@ use std::io;
 use std::io::prelude::*;
 
 use lox_interpreter::interpreter::Interpreter;
+use lox_interpreter::interpreter::InterpreterState;
 use lox_interpreter::parser::parenthesize_statements;
 use lox_interpreter::scanner::SourceCode;
 use lox_interpreter::parser::Parser;
@@ -67,8 +68,9 @@ fn run(raw_source: String) {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(ast) => {
+            let state = &mut InterpreterState::<std::io::Stdout>::default();
             let interpreter = Interpreter::new(ast);
-            interpreter.interpret();
+            interpreter.interpret(state);
         },
         Err(err) => println!("Lox error:\n{}", err)
     }
@@ -86,8 +88,9 @@ fn run_debug(raw_source: String) {
     match parser.parse() {
         Ok(ast) => {
             println!("{}", parenthesize_statements(&ast));
+            let state = &mut InterpreterState::<std::io::Stdout>::default();
             let interpreter = Interpreter::new(ast);
-            interpreter.interpret();
+            interpreter.interpret(state);
         },
         Err(err) => println!("Lox error:\n{}", err)
     }
