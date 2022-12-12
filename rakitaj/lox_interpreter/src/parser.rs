@@ -385,6 +385,19 @@ pub fn parenthesize(expr: &Expr) -> String {
     }
 }
 
+pub trait ParseResult {
+    fn must(self) -> Vec<Stmt>;
+}
+
+impl ParseResult for Result<Vec<Stmt>, LoxError> {
+    fn must(self) -> Vec<Stmt> {
+        match self {
+            Ok(result) => result,
+            Err(err) => panic!("Parsing failed with {}", err)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

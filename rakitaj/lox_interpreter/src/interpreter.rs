@@ -43,7 +43,13 @@ impl Interpreter {
         for stmt in &self.statements {
             let result = self.evaluate(stmt, state);
             match result {
-                Ok(x) => if let Some(y) = x { writeln!(state.writer, "{}", y); }
+                //Ok(x) => if let Some(y) = x { writeln!(state.writer, "{}", y); }
+                Ok(maybe_value) => {
+                    match maybe_value {
+                        Some(value) => { writeln!(state.writer, "{}", value); },
+                        None => todo!("Yeah")
+                    }
+                },
                 Err(err) => {
                     writeln!(state.writer, "Error: {}", err);
                     errors.push(err);

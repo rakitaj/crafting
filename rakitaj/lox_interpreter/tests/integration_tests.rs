@@ -1,4 +1,4 @@
-use lox_interpreter::{parser::{Expr, Literal, Parser, Stmt}, tokens::{TokenType, Token}, core::{location::Location, errors::LoxError}, scanner::SourceCode};
+use lox_interpreter::{parser::{Expr, Literal, Parser, Stmt, ParseResult}, tokens::{TokenType, Token}, core::{location::Location, errors::LoxError}, scanner::SourceCode, interpreter::{InterpreterState, Interpreter}};
 
 fn loc(line: usize) -> Location {
     Location::Line("integration-test.lox".to_string(), line)
@@ -41,4 +41,17 @@ fn test_variable_declaration() {
         Stmt::Var(Token::new(TokenType::Identifier("foo".to_string()), loc(1)), Expr::Literal(loc(1), Literal::Nil))
     ];
     assert_eq!(ast_result, Ok(ast));
+}
+
+#[test]
+fn test_conditional() {
+    let filename = "conditional.lox";
+    let mut source = SourceCode::new(filename, "repl.lox".to_string());
+    let tokens = source.scan_tokens();
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse().must();
+    let state = &mut InterpreterState::<Vec<u8>>::default();
+    let interpreter = Interpreter::new(ast);
+    interpreter.interpret(state);
+    //assert_eq!(ast_result, Ok(ast));
 }

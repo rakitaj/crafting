@@ -1,4 +1,4 @@
-if (true) {
+if (2 + 2 == 4) {
     print "it's true";
 } else {
     print "falsey";
