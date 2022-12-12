@@ -42,6 +42,19 @@ pub struct Parser {
     current: usize
 }
 
+pub trait ParseResult {
+    fn must(self) -> Vec<Stmt>;
+}
+
+impl ParseResult for Result<Vec<Stmt>, LoxError> {
+    fn must(self) -> Vec<Stmt> {
+        match self {
+            Ok(statements) => statements,
+            Err(err) => panic!("Parsing failed and it must succeed. Error: {}", err)
+        }
+    }
+}
+
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }

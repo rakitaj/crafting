@@ -150,7 +150,7 @@ impl Interpreter {
                             TokenType::GreaterEqual => Ok(Value::Boolean(left_num >= right_num)),
                             TokenType::Less => Ok(Value::Boolean(left_num < right_num)),
                             TokenType::LessEqual => Ok(Value::Boolean(left_num <= right_num)),
-                            _ => Err(LoxError::RuntimeError(operator.location.clone(), "Should be unreachable".to_string()))
+                            _ => Err(LoxError::RuntimeError(operator.location.clone(), "Matching number. Should be unreachable".to_string()))
                         }
                     },
                     (Value::String(left_string), Value::String(right_string)) => {
@@ -159,7 +159,7 @@ impl Interpreter {
                                 let concat_string = format!("{}{}", left_string, right_string);
                                 Ok(Value::String(concat_string))
                             },
-                            _ => Err(LoxError::RuntimeError(operator.location.clone(), "Should be unreachable".to_string()))
+                            _ => Err(LoxError::RuntimeError(operator.location.clone(), "Matching string. Should be unreachable".to_string()))
                         }
                     }
                     (left, right) => {
