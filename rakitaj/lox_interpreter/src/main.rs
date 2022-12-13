@@ -1,11 +1,11 @@
 use std::env;
-use std::fs;
 use std::io;
 use std::io::prelude::*;
 
 use lox_interpreter::interpreter::Interpreter;
 use lox_interpreter::interpreter::InterpreterState;
 use lox_interpreter::parser::parenthesize_statements;
+use lox_interpreter::runhelpers::load_source;
 use lox_interpreter::scanner::SourceCode;
 use lox_interpreter::parser::Parser;
 
@@ -96,22 +96,5 @@ fn run_debug(raw_source: String) {
     }
 }
 
-fn load_source(filepath: &str) -> String {
-    let result_contents = fs::read_to_string(filepath);
-    match result_contents {
-        Ok(contents) => contents,
-        Err(err) => {
-            error(0, err.to_string());
-            panic!();
-        }
-    }
-}
 
-fn error(line: usize, message: String) {
-    report(line, "".to_string(), message);
-}
-
-fn report(line: usize, location: String, message: String) {
-    println!("[line {}] Error {}: {}", line, location, message);
-}
 
