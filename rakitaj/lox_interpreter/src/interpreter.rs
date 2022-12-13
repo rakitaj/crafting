@@ -49,11 +49,8 @@ impl Interpreter {
         for stmt in &self.statements {
             let result = self.evaluate(stmt, state);
             match result {
-                Ok(maybe_value) => {
-                    match maybe_value {
-                        Some(value) => { writeln!(state.writer, "{}", value); },
-                        None => todo!("Yeah")
-                    }
+                Ok(maybe_value) => if let Some(value) = maybe_value {
+                    writeln!(state.writer, "{}", value);
                 },
                 Err(err) => {
                     writeln!(state.writer, "Error: {}", err);
@@ -150,9 +147,11 @@ impl Interpreter {
             Expr::Binary(left_expr, operator, right_expr) => {
                 let left = self.evaluate_expr(left_expr, state)?;
                 let right = self.evaluate_expr(right_expr, state)?;
-                match (left, right) {
-                    (Value::Number(left_num), Value::Number(right_num)) => {
-                        match operator.token_type {
+                match (&left, &right, &operator.token_type) {
+                    (left, right, TokenType::EqualEqual) => Ok(Value::Boolean(left == right)),
+                    (left, right, TokenType::BangEqual) => Ok(Value::Boolean(!(left == right))),
+                    (Value::Number(left_num), Value::Number(right_num), token_type) => {
+                        match token_type {
                             TokenType::Minus => Ok(Value::Number(left_num - right_num)),
                             TokenType::Slash => Ok(Value::Number(left_num / right_num)),
                             TokenType::Star => Ok(Value::Number(left_num * right_num)),
@@ -164,24 +163,18 @@ impl Interpreter {
                             _ => Err(LoxError::RuntimeError(operator.location.clone(), "Matching number. Should be unreachable".to_string()))
                         }
                     },
-                    (Value::String(left_string), Value::String(right_string)) => {
-                        match operator.token_type {
+                    (Value::String(left_string), Value::String(right_string), token_type) => {
+                        match token_type {
                             TokenType::Plus =>  {
                                 let concat_string = format!("{}{}", left_string, right_string);
                                 Ok(Value::String(concat_string))
                             },
                             _ => Err(LoxError::RuntimeError(operator.location.clone(), "Matching string. Should be unreachable".to_string()))
                         }
-                    }
-                    (left, right) => {
-                        match operator.token_type {
-                            TokenType::EqualEqual => Ok(Value::Boolean(left == right)),
-                            TokenType::BangEqual => Ok(Value::Boolean(!(left == right))),
-                            _ => {
-                                let msg = format!("Expected two numbers and got left: {:?} -- right: {:?}", left, right);
-                                Err(LoxError::RuntimeError(operator.location.clone(), msg))
-                            }
-                        }
+                    },
+                    _ => {
+                        let msg = format!("Expected two numbers and got left: {:?} -- right: {:?}", left, right);
+                        Err(LoxError::RuntimeError(operator.location.clone(), msg))
                     }
                 }
             },

@@ -22,7 +22,6 @@ fn test_expression_to_ast() {
             Box::new(Expr::Literal(loc(1), Literal::Number(3.0))))),
         Token::new(TokenType::EqualEqual, loc(1)),
         Box::new(Expr::Literal(loc(1), Literal::Number(1.0)))))];
-        
     assert_eq!(ast_result, Ok(ast))
 }
 
@@ -43,5 +42,5 @@ fn test_conditional() {
     let state = &mut InterpreterState::<Vec<u8>>::default();
     let interpreter = Interpreter::new(ast);
     interpreter.interpret(state);
-    assert_eq!(state.get_writer(), "it's true")
+    assert_eq!(state.get_writer(), "it's true\n")
 }
