@@ -49,13 +49,11 @@ impl Interpreter {
         for stmt in &self.statements {
             let result = self.evaluate(stmt, state);
             match result {
-                Ok(maybe_value) => if let Some(value) = maybe_value {
-                    writeln!(state.writer, "{}", value);
+                Ok(maybe_value) => { 
+                    let val_or_default = maybe_value.unwrap_or_else(|| Value::String("No value returned.".to_string()));
+                    writeln!(state.writer, "{}", val_or_default);
                 },
-                Err(err) => {
-                    writeln!(state.writer, "Error: {}", err);
-                    errors.push(err);
-                }
+                Err(err) => errors.push(err)
             }
         }
         errors
