@@ -49,12 +49,7 @@ impl Interpreter {
         for stmt in &self.statements {
             let result = self.evaluate(stmt, state);
             match result {
-                Ok(maybe_value) => { 
-                    let val_or_default = maybe_value.unwrap_or_else(|| Value::String("No value returned.".to_string()));
-                    if let Err(err) =  writeln!(state.writer, "{}", val_or_default) {
-                        errors.push(LoxError::new_syscall(std::file!(), 55, err.to_string()))
-                    }
-                },
+                Ok(_) => (),
                 Err(err) => errors.push(err)
             }
         }

@@ -36,11 +36,21 @@ fn test_variable_declaration() {
 }
 
 #[test]
-fn test_conditional() {
-    let filepath = "./data/conditional.lox";
+fn test_conditional_true() {
+    let filepath = "./data/conditional-true.lox";
     let ast = filename_to_ast(filepath).must();
     let state = &mut InterpreterState::<Vec<u8>>::default();
     let interpreter = Interpreter::new(ast);
     interpreter.interpret(state);
     assert_eq!(state.get_writer(), "it's true\n")
+}
+
+#[test]
+fn test_conditional_false() {
+    let filepath = "./data/conditional-false.lox";
+    let ast = filename_to_ast(filepath).must();
+    let state = &mut InterpreterState::<Vec<u8>>::default();
+    let interpreter = Interpreter::new(ast);
+    interpreter.interpret(state);
+    assert_eq!(state.get_writer(), "falsey\n")
 }
