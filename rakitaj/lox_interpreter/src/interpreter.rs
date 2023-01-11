@@ -51,7 +51,9 @@ impl Interpreter {
             match result {
                 Ok(maybe_value) => { 
                     let val_or_default = maybe_value.unwrap_or_else(|| Value::String("No value returned.".to_string()));
-                    writeln!(state.writer, "{}", val_or_default);
+                    if let Err(err) =  writeln!(state.writer, "{}", val_or_default) {
+                        errors.push(LoxError::new_syscall(std::file!(), 55, err.to_string()))
+                    }
                 },
                 Err(err) => errors.push(err)
             }
@@ -104,7 +106,11 @@ impl Interpreter {
 
     fn evaluate_print<T: Write>(&self, expr: &Expr, state: &mut InterpreterState<T>) -> Result<Option<Value>, LoxError> {
         let value = self.evaluate_expr(expr, state)?;
-        writeln!(state.writer, "{}", value);
+        // writeln!(state.writer, "{}", value);
+        if let Err(err) =  writeln!(state.writer, "{}", value) {
+            let wrapped_syscall_error = LoxError::new_syscall(std::file!(), 111, err.to_string());
+            return Err(wrapped_syscall_error);
+        }
         Ok(None)
     }
 
