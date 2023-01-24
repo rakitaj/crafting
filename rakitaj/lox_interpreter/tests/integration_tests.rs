@@ -1,4 +1,7 @@
-use lox_interpreter::{parser::{Expr, Literal, Stmt, ParseResult}, tokens::{TokenType, Token}, core::{location::Location}, interpreter::{InterpreterState, Interpreter}, runhelpers::{raw_source_to_ast, filename_to_ast}};
+use std::{io::{BufRead, self}, fs::File};
+
+use rstest::*;
+use lox_interpreter::{parser::{Expr, Literal, Stmt, ParseResult}, tokens::{TokenType, Token}, core::{location::Location}, interpreter::{InterpreterState, Interpreter}, runhelpers::{raw_source_to_ast, filepath_to_ast}};
 
 fn loc(line: usize) -> Location {
     Location::Line("integration-test.lox".to_string(), line)
@@ -35,22 +38,31 @@ fn test_variable_declaration() {
     assert_eq!(ast_result, Ok(ast));
 }
 
-#[test]
-fn test_conditional_true() {
-    let filepath = "./data/conditional-true.lox";
-    let ast = filename_to_ast(filepath).must();
-    let state = &mut InterpreterState::<Vec<u8>>::default();
-    let interpreter = Interpreter::new(ast);
-    interpreter.interpret(state);
-    assert_eq!(state.get_writer(), "it's true\n")
+fn expected_output(file_path: &str) -> String {
+    let file = File::open(file_path).unwrap();
+    let contents = io::BufReader::new(file).lines();
+    // Consumes the iterator, returns an (Optional) String
+    for line in contents {
+        let l = line.unwrap();
+        if l.starts_with("//") {
+            let parts: Vec<&str> = l.split("//").collect();
+            return parts[1][1..].to_string();
+        }
+    }
+    panic!()
 }
 
-#[test]
-fn test_conditional_false() {
-    let filepath = "./data/conditional-false.lox";
-    let ast = filename_to_ast(filepath).must();
+#[rstest]
+#[case("conditional-and-false.lox")]
+#[case("conditional-and-true.lox")]
+#[case("conditional-false.lox")]
+#[case("conditional-true.lox")]
+fn test_program_output_is_expected(#[case] filename: &str) {
+    let filepath = format!("./data/{}", filename);
+    let expected = expected_output(&filepath);
+    let ast = filepath_to_ast(&filepath).must();
     let state = &mut InterpreterState::<Vec<u8>>::default();
     let interpreter = Interpreter::new(ast);
     interpreter.interpret(state);
-    assert_eq!(state.get_writer(), "falsey\n")
+    assert_eq!(state.get_writer(), expected + "\n")
 }

@@ -177,6 +177,16 @@ impl Interpreter {
                     }
                 }
             },
+            Expr::Logical(left_expr, operator, right_expr) => {
+                let left = self.evaluate_expr(left_expr, state)?;
+                match (&operator.token_type, left.is_truthy()) {
+                    (TokenType::Or, true) => Ok(left),
+                    (TokenType::Or, false) => self.evaluate_expr(right_expr, state),
+                    (TokenType::And, true) => self.evaluate_expr(right_expr, state),
+                    (TokenType::And, false) => Ok(left),
+                    (_, _) => Err(LoxError::SyntaxError(operator.location.clone(), format!("Can't interpret conditional with operator: {}", operator)))
+                }
+            },
             Expr::Variable(token) => {
                 match &token.token_type {
                     TokenType::Identifier(variable_name) => {

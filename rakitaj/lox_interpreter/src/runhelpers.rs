@@ -28,7 +28,7 @@ pub fn raw_source_to_ast(source: &str, filename: &str) -> Result<Vec<Stmt>, LoxE
     parser.parse()
 }
 
-pub fn filename_to_ast(filepath: &str) -> Result<Vec<Stmt>, LoxError> {
+pub fn filepath_to_ast(filepath: &str) -> Result<Vec<Stmt>, LoxError> {
     let raw_source = load_source(filepath);
     let mut source_code = SourceCode::new(&raw_source, filepath.to_string());
     let tokens = source_code.scan_tokens();

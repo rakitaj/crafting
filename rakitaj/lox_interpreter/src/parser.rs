@@ -18,6 +18,7 @@ pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(Location, Literal),
+    Logical(Box<Expr>, Token, Box<Expr>),
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
     Unary(Token, Box<Expr>),
     Variable(Token)
@@ -166,8 +167,8 @@ impl Parser {
         
         if self.match_token_type(&[TokenType::Else]) {
             let else_branch_stmt = self.statement()?;
-            let elee_branch = Some(Box::new(else_branch_stmt));
-            return Ok(Stmt::If(condition, Box::new(then_branch), elee_branch));
+            let else_branch = Some(Box::new(else_branch_stmt));
+            return Ok(Stmt::If(condition, Box::new(then_branch), else_branch));
         }
 
         Ok(Stmt::If(condition, Box::new(then_branch), None))
@@ -202,7 +203,9 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr, LoxError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
+
+        // let expr = self.equality()?;
         if self.match_token_type(&[TokenType::Equal]) {
             let location = self.previous().location.clone();
             let value = self.assignment()?;
@@ -213,6 +216,27 @@ impl Parser {
             }
         }
         Ok(expr)        
+    }
+
+    fn or(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.and()?;
+
+        if self.match_token_type(&[TokenType::Or]) {
+            let operator = self.previous().clone();
+            let right = self.and()?;
+            expr = Expr::Logical(Box::new(expr), operator, Box::new(right));
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.equality()?;
+        if self.match_token_type(&[TokenType::And]) {
+            let operator = self.previous().clone();
+            let right = self.equality()?;
+            expr = Expr::Logical(Box::new(expr), operator, Box::new(right));
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {
@@ -381,6 +405,7 @@ pub fn parenthesize(expr: &Expr) -> String {
         Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(expr_left), parenthesize(expr_right)),
         Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right)),
         Expr::Variable(var_identifier) => format!("var {}", var_identifier),
+        Expr::Logical(expr_left, token, expr_right) => format!("{} {} {}", parenthesize(expr_left), token.token_type, parenthesize(expr_right)),
         Expr::Assign(token, expr) => format!("({} = {})", token, parenthesize(expr))
     }
 }

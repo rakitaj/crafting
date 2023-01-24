@@ -1,0 +1,10 @@
+// f
+
+if (false and "bar") 
+{ 
+    print "t"; 
+} 
+else 
+{ 
+    print "f"; 
+}
