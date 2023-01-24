@@ -88,6 +88,12 @@ impl Interpreter {
                         }
                     }
                 }
+            },
+            Stmt::While(condition, body) => {
+                while self.evaluate_expr(condition, state)?.is_truthy() {
+                    self.evaluate(body, state)?;
+                }
+                Ok(None)
             }
         }
     }

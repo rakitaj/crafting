@@ -30,7 +30,8 @@ pub enum Stmt {
     Print(Expr),
     Var(Token, Expr),
     Block(Vec<Stmt>),
-    If(Expr, Box<Stmt>, Option<Box<Stmt>>)
+    If(Expr, Box<Stmt>, Option<Box<Stmt>>),
+    While(Expr, Box<Stmt>)
 }
 
 #[derive(PartialEq)]
@@ -150,12 +151,22 @@ impl Parser {
             self.print_statement()
         } else if self.match_token_type(&[TokenType::If]) {
             self.if_statement()
+        } else if self.match_token_type(&[TokenType::While]) {
+            self.while_statement()
         } else if self.match_token_type(&[TokenType::LeftBrace]) {
             let block = self.block()?;
             Ok(Stmt::Block(block))
         } else {
             self.expression_statement()
         }
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt, LoxError> {
+        let _ = self.consume(&TokenType::LeftParen, "Expect '(' before while statement.");
+        let condition = self.expression()?;
+        let _ = self.consume(&TokenType::RightParen, "Expect ')' after while statement.");
+        let body = self.statement()?;
+        Ok(Stmt::While(condition, Box::new(body)))
     }
 
     fn if_statement(&mut self) -> Result<Stmt, LoxError> {
