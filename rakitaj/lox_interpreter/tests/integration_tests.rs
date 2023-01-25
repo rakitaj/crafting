@@ -41,15 +41,19 @@ fn test_variable_declaration() {
 fn expected_output(file_path: &str) -> String {
     let file = File::open(file_path).unwrap();
     let contents = io::BufReader::new(file).lines();
+    let mut result = Vec::new();
     // Consumes the iterator, returns an (Optional) String
     for line in contents {
         let l = line.unwrap();
         if l.starts_with("//") {
             let parts: Vec<&str> = l.split("//").collect();
-            return parts[1][1..].to_string();
+            let expected = parts[1][1..].to_string();
+            result.push(expected + "\n")
+        } else {
+            break
         }
     }
-    panic!()
+    return result.join("");
 }
 
 #[rstest]
@@ -57,6 +61,7 @@ fn expected_output(file_path: &str) -> String {
 #[case("conditional-and-true.lox")]
 #[case("conditional-false.lox")]
 #[case("conditional-true.lox")]
+#[case("while-loop.lox")]
 fn test_program_output_is_expected(#[case] filename: &str) {
     let filepath = format!("./data/{}", filename);
     let expected = expected_output(&filepath);
@@ -64,5 +69,5 @@ fn test_program_output_is_expected(#[case] filename: &str) {
     let state = &mut InterpreterState::<Vec<u8>>::default();
     let interpreter = Interpreter::new(ast);
     interpreter.interpret(state);
-    assert_eq!(state.get_writer(), expected + "\n")
+    assert_eq!(state.get_writer(), expected)
 }
