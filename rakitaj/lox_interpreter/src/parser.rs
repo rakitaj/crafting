@@ -153,12 +153,51 @@ impl Parser {
             self.if_statement()
         } else if self.match_token_type(&[TokenType::While]) {
             self.while_statement()
+        } else if self.match_token_type(&[TokenType::For]) {
+            self.for_statement()
         } else if self.match_token_type(&[TokenType::LeftBrace]) {
             let block = self.block()?;
             Ok(Stmt::Block(block))
         } else {
             self.expression_statement()
         }
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, LoxError> {
+        let left_paren = self.consume(&TokenType::LeftParen, "Expect '(' before for statement.")?.clone();
+        
+        let mut initializer: Option<Stmt> = None;
+        if self.match_token_type(&[TokenType::Var]) {
+            initializer = Some(self.var_declaration()?);
+        } else {
+            initializer = Some(self.expression_statement()?);
+        }
+
+        let mut condition: Expr = Expr::Literal(left_paren.location, Literal::True);
+        if !self.check(&TokenType::SemiColon) {
+            condition = self.expression()?;
+        }
+        let _ = self.consume(&TokenType::SemiColon, "Expect ';' after loop condition.");
+
+        let mut increment: Option<Expr> = None;
+        if !self.check(&TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+        let _ = self.consume(&TokenType::RightParen, "Expect ')' after for clauses.");
+
+        let mut body = self.statement()?;
+
+        if let Some(increment) = increment {
+            body = Stmt::Block(vec![body, Stmt::Expression(increment)]);
+        }
+
+        body = Stmt::While(condition, Box::new(body));
+
+        if let Some(init) = initializer {
+            body = Stmt::Block(vec![init, body])
+        }
+
+        Ok(body)
     }
 
     fn while_statement(&mut self) -> Result<Stmt, LoxError> {
