@@ -62,6 +62,7 @@ fn expected_output(file_path: &str) -> String {
 #[case("conditional-false.lox")]
 #[case("conditional-true.lox")]
 #[case("while-loop.lox")]
+#[case("for-loop.lox")]
 fn test_program_output_is_expected(#[case] filename: &str) {
     let filepath = format!("./data/{}", filename);
     let expected = expected_output(&filepath);
