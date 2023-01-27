@@ -41,7 +41,7 @@ pub struct Ast {
 
 pub struct Parser {
     tokens: Vec<Token>,
-    current: usize
+    current: usize,
 }
 
 pub trait ParseResult {
@@ -165,13 +165,11 @@ impl Parser {
 
     fn for_statement(&mut self) -> Result<Stmt, LoxError> {
         let left_paren = self.consume(&TokenType::LeftParen, "Expect '(' before for statement.")?.clone();
-        
-        let mut initializer: Option<Stmt> = None;
-        if self.match_token_type(&[TokenType::Var]) {
-            initializer = Some(self.var_declaration()?);
-        } else {
-            initializer = Some(self.expression_statement()?);
-        }
+
+        let initializer = match self.match_token_type(&[TokenType::Var]) {
+            true => self.var_declaration()?,
+            false => self.expression_statement()?
+        };
 
         let mut condition: Expr = Expr::Literal(left_paren.location, Literal::True);
         if !self.check(&TokenType::SemiColon) {
@@ -192,10 +190,7 @@ impl Parser {
         }
 
         body = Stmt::While(condition, Box::new(body));
-
-        if let Some(init) = initializer {
-            body = Stmt::Block(vec![init, body])
-        }
+        body = Stmt::Block(vec![initializer, body]);
 
         Ok(body)
     }
