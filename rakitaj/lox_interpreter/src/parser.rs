@@ -18,6 +18,7 @@ pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(Location, Literal),
+    Logical(Box<Expr>, Token, Box<Expr>),
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
     Unary(Token, Box<Expr>),
     Variable(Token)
@@ -28,7 +29,9 @@ pub enum Stmt {
     Expression(Expr),
     Print(Expr),
     Var(Token, Expr),
-    Block(Vec<Stmt>)
+    Block(Vec<Stmt>),
+    If(Expr, Box<Stmt>, Option<Box<Stmt>>),
+    While(Expr, Box<Stmt>)
 }
 
 #[derive(PartialEq)]
@@ -38,7 +41,20 @@ pub struct Ast {
 
 pub struct Parser {
     tokens: Vec<Token>,
-    current: usize
+    current: usize,
+}
+
+pub trait ParseResult {
+    fn must(self) -> Vec<Stmt>;
+}
+
+impl ParseResult for Result<Vec<Stmt>, LoxError> {
+    fn must(self) -> Vec<Stmt> {
+        match self {
+            Ok(statements) => statements,
+            Err(err) => panic!("Parsing failed and it must succeed. Error: {}", err)
+        }
+    }
 }
 
 impl Parser {
@@ -133,12 +149,74 @@ impl Parser {
     fn statement(&mut self) -> Result<Stmt, LoxError> {
         if self.match_token_type(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.match_token_type(&[TokenType::If]) {
+            self.if_statement()
+        } else if self.match_token_type(&[TokenType::While]) {
+            self.while_statement()
+        } else if self.match_token_type(&[TokenType::For]) {
+            self.for_statement()
         } else if self.match_token_type(&[TokenType::LeftBrace]) {
             let block = self.block()?;
             Ok(Stmt::Block(block))
         } else {
             self.expression_statement()
         }
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, LoxError> {
+        let left_paren = self.consume(&TokenType::LeftParen, "Expect '(' before for statement.")?.clone();
+
+        let initializer = match self.match_token_type(&[TokenType::Var]) {
+            true => self.var_declaration()?,
+            false => self.expression_statement()?
+        };
+
+        let mut condition: Expr = Expr::Literal(left_paren.location, Literal::True);
+        if !self.check(&TokenType::SemiColon) {
+            condition = self.expression()?;
+        }
+        let _ = self.consume(&TokenType::SemiColon, "Expect ';' after loop condition.");
+
+        let mut increment: Option<Expr> = None;
+        if !self.check(&TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+        let _ = self.consume(&TokenType::RightParen, "Expect ')' after for clauses.");
+
+        let mut body = self.statement()?;
+
+        if let Some(increment) = increment {
+            body = Stmt::Block(vec![body, Stmt::Expression(increment)]);
+        }
+
+        body = Stmt::While(condition, Box::new(body));
+        body = Stmt::Block(vec![initializer, body]);
+
+        Ok(body)
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt, LoxError> {
+        let _ = self.consume(&TokenType::LeftParen, "Expect '(' before while statement.");
+        let condition = self.expression()?;
+        let _ = self.consume(&TokenType::RightParen, "Expect ')' after while statement.");
+        let body = self.statement()?;
+        Ok(Stmt::While(condition, Box::new(body)))
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt, LoxError> {
+        self.consume(&TokenType::LeftParen, "Expect '(' after if.")?;
+        let condition = self.expression()?;
+        self.consume(&TokenType::RightParen, "Expect ')' after if condition.")?;
+
+        let then_branch = self.statement()?;
+        
+        if self.match_token_type(&[TokenType::Else]) {
+            let else_branch_stmt = self.statement()?;
+            let else_branch = Some(Box::new(else_branch_stmt));
+            return Ok(Stmt::If(condition, Box::new(then_branch), else_branch));
+        }
+
+        Ok(Stmt::If(condition, Box::new(then_branch), None))
     }
 
     fn block(&mut self) -> Result<Vec<Stmt>, LoxError> {
@@ -170,7 +248,9 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr, LoxError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
+
+        // let expr = self.equality()?;
         if self.match_token_type(&[TokenType::Equal]) {
             let location = self.previous().location.clone();
             let value = self.assignment()?;
@@ -181,6 +261,27 @@ impl Parser {
             }
         }
         Ok(expr)        
+    }
+
+    fn or(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.and()?;
+
+        if self.match_token_type(&[TokenType::Or]) {
+            let operator = self.previous().clone();
+            let right = self.and()?;
+            expr = Expr::Logical(Box::new(expr), operator, Box::new(right));
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expr, LoxError> {
+        let mut expr = self.equality()?;
+        if self.match_token_type(&[TokenType::And]) {
+            let operator = self.previous().clone();
+            let right = self.equality()?;
+            expr = Expr::Logical(Box::new(expr), operator, Box::new(right));
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, LoxError> {
@@ -349,6 +450,7 @@ pub fn parenthesize(expr: &Expr) -> String {
         Expr::Binary(expr_left, token, expr_right) => format!("({} {} {})", token.token_type, parenthesize(expr_left), parenthesize(expr_right)),
         Expr::Ternary(expr_conditional, expr_left, expr_right) => format!("(ternary {} {} {})", parenthesize(expr_conditional), parenthesize(expr_left), parenthesize(expr_right)),
         Expr::Variable(var_identifier) => format!("var {}", var_identifier),
+        Expr::Logical(expr_left, token, expr_right) => format!("{} {} {}", parenthesize(expr_left), token.token_type, parenthesize(expr_right)),
         Expr::Assign(token, expr) => format!("({} = {})", token, parenthesize(expr))
     }
 }

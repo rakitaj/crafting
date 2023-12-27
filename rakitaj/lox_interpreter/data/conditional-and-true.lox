@@ -1,0 +1,10 @@
+// t
+
+if ("foo" and "bar") 
+{ 
+    print "t"; 
+} 
+else 
+{ 
+    print "f"; 
+}

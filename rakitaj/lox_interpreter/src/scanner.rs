@@ -25,6 +25,7 @@ pub fn is_valid_for_number(c: char) -> bool {
 pub fn identifier_or_keyword_to_tokentype(identifier: &str) -> TokenType {
     match identifier {
         "and" => TokenType::And,
+        "break" => TokenType::Break,
         "class" => TokenType::Class,
         "else" => TokenType::Else,
         "false" => TokenType::False,
