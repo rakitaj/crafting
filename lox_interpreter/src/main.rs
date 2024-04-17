@@ -11,7 +11,7 @@ use lox_interpreter::parser::Parser;
 
 enum ReplMode {
     Standard,
-    Debug
+    Debug,
 }
 
 fn main() {
@@ -41,7 +41,6 @@ fn print_help() {
 fn run_file(filepath: &str) {
     let raw_source = load_source(filepath);
     run(raw_source);
-    
 }
 
 fn run_prompt(mode: ReplMode) {
@@ -49,14 +48,14 @@ fn run_prompt(mode: ReplMode) {
     for line in stdin.lock().lines() {
         let unwrapped_line = match line {
             Ok(x) => x,
-            Err(_) => break
+            Err(_) => break,
         };
         if unwrapped_line.is_empty() {
             break;
         } else {
             match mode {
                 ReplMode::Standard => run(unwrapped_line),
-                ReplMode::Debug => run_debug(unwrapped_line)
+                ReplMode::Debug => run_debug(unwrapped_line),
             }
         }
     }
@@ -71,19 +70,19 @@ fn run(raw_source: String) {
             let state = &mut InterpreterState::<std::io::Stdout>::default();
             let interpreter = Interpreter::new(ast);
             interpreter.interpret(state);
-        },
-        Err(err) => println!("Lox error:\n{}", err)
+        }
+        Err(err) => println!("Lox error:\n{}", err),
     }
 }
 
 fn run_debug(raw_source: String) {
     let mut source = SourceCode::new(&raw_source, "repl.lox".to_string());
     let tokens = source.scan_tokens();
-    
+
     for token in &tokens {
         println!("{:?}", token);
     }
-    
+
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(ast) => {
@@ -91,10 +90,7 @@ fn run_debug(raw_source: String) {
             let state = &mut InterpreterState::<std::io::Stdout>::default();
             let interpreter = Interpreter::new(ast);
             interpreter.interpret(state);
-        },
-        Err(err) => println!("Lox error:\n{}", err)
+        }
+        Err(err) => println!("Lox error:\n{}", err),
     }
 }
-
-
-
