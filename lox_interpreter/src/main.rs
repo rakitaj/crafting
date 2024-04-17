@@ -5,9 +5,9 @@ use std::io::prelude::*;
 use lox_interpreter::interpreter::Interpreter;
 use lox_interpreter::interpreter::InterpreterState;
 use lox_interpreter::parser::parenthesize_statements;
+use lox_interpreter::parser::Parser;
 use lox_interpreter::runhelpers::load_source;
 use lox_interpreter::scanner::SourceCode;
-use lox_interpreter::parser::Parser;
 
 enum ReplMode {
     Standard,

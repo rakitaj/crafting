@@ -16,7 +16,7 @@ where
 
     fn next(&mut self) -> Option<T::Item> {
         let return_next = match self.inner.peek() {
-            Some(ref v) => (self.condition)(v),
+            Some(v) => (self.condition)(v),
             _ => false,
         };
         if return_next {
@@ -28,11 +28,17 @@ where
 }
 
 pub trait TakeWhileExclusiveable<'a, T: Iterator>: Iterator {
-    fn take_while_exclusive<P: FnMut(&T::Item) -> bool>(&'a mut self, f: P) -> TakeWhileExclusive<'a, T, P>;
+    fn take_while_exclusive<P: FnMut(&T::Item) -> bool>(
+        &'a mut self,
+        f: P,
+    ) -> TakeWhileExclusive<'a, T, P>;
 }
 
 impl<'a, T: Iterator> TakeWhileExclusiveable<'a, T> for Peekable<T> {
-    fn take_while_exclusive<P: FnMut(&T::Item) -> bool>(&'a mut self, f: P) -> TakeWhileExclusive<'a, T, P> {
+    fn take_while_exclusive<P: FnMut(&T::Item) -> bool>(
+        &'a mut self,
+        f: P,
+    ) -> TakeWhileExclusive<'a, T, P> {
         TakeWhileExclusive {
             inner: self,
             condition: f,

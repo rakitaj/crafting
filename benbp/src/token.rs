@@ -10,34 +10,29 @@ pub struct Token {
 
 impl Token {
     pub fn new(token_type: TokenType, line: i32, literal: Option<Literal>) -> Option<Self> {
-        match get_token_lexeme(token_type.clone()) {
-            Some(lexeme) => {
-                Some(Token {
-                    token_type,
-                    lexeme,
-                    line,
-                    literal
-                })
-            }
-            _ => { None }
-        }
+        get_token_lexeme(token_type.clone()).map(|lexeme| Token {
+            token_type,
+            lexeme,
+            line,
+            literal,
+        })
     }
 
     pub fn new_from_lexeme(lexeme: &str, line: i32, literal: Option<Literal>) -> Option<Self> {
-        match get_token_type(lexeme) {
-            Some(t) => {
-                Some(Token {
-                    token_type: t,
-                    lexeme: lexeme.to_string(),
-                    line,
-                    literal
-                })
-            }
-            _ => { None }
-        }
+        get_token_type(lexeme).map(|t| Token {
+            token_type: t,
+            lexeme: lexeme.to_string(),
+            line,
+            literal,
+        })
     }
 
-    pub fn new_as_type(token_type: TokenType, lexeme: String, line: i32, literal: Option<Literal>) -> Option<Self> {
+    pub fn new_as_type(
+        token_type: TokenType,
+        lexeme: String,
+        line: i32,
+        literal: Option<Literal>,
+    ) -> Option<Self> {
         Some(Token {
             token_type,
             lexeme,
@@ -58,23 +53,28 @@ impl Token {
 
 #[derive(Debug)]
 pub enum Literal {
-    NumberLiteral(f64),
-    StringLiteral(String),
-    IdentifierLiteral(String),
+    Number(f64),
+    String(String),
+    Identifier(String),
 }
 
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Literal::NumberLiteral(n) => { write!(f, "{}", n) }
-            Literal::StringLiteral(s) => { write!(f, "{}", s) }
-            Literal::IdentifierLiteral(i) => { write!(f, "{}", i) }
+            Literal::Number(n) => {
+                write!(f, "{}", n)
+            }
+            Literal::String(s) => {
+                write!(f, "{}", s)
+            }
+            Literal::Identifier(i) => {
+                write!(f, "{}", i)
+            }
         }
     }
 }
 
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -122,7 +122,7 @@ pub enum TokenType {
     Var,
     While,
 
-    EOF,
+    Eof,
 }
 
 fn get_token_lexeme(token: TokenType) -> Option<String> {
@@ -149,7 +149,7 @@ fn get_token_lexeme(token: TokenType) -> Option<String> {
         TokenType::Less => Some("<".to_string()),
         TokenType::LessEqual => Some("<=".to_string()),
 
-        _ => None
+        _ => None,
     }
 }
 
@@ -177,7 +177,7 @@ fn get_token_type(lexeme: &str) -> Option<TokenType> {
         "<" => Some(TokenType::Less),
         "<=" => Some(TokenType::LessEqual),
 
-        _ => None
+        _ => None,
     }
 }
 

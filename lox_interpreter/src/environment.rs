@@ -1,10 +1,13 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::{hash_map::Entry, HashMap};
 
-use crate::{value::Value, core::{errors::LoxError, location::Location}};
+use crate::{
+    core::{errors::LoxError, location::Location},
+    value::Value,
+};
 
 pub struct Environment {
     scopes: Vec<HashMap<String, Value>>,
-    index: usize
+    index: usize,
 }
 
 impl Default for Environment {
@@ -14,10 +17,12 @@ impl Default for Environment {
 }
 
 impl Environment {
-
     pub fn new() -> Self {
         let scopes_list: Vec<HashMap<String, Value>> = vec![HashMap::new()];
-        Environment { scopes: scopes_list, index: 0 }
+        Environment {
+            scopes: scopes_list,
+            index: 0,
+        }
     }
 
     pub fn new_child_scope(&mut self) {
@@ -28,7 +33,7 @@ impl Environment {
     pub fn destroy_child_scope(&mut self) {
         match self.scopes.pop() {
             Some(_) => (),
-            _ => panic!("Internal error popping the child scope.") 
+            _ => panic!("Internal error popping the child scope."),
         }
         self.index -= 1;
     }
@@ -43,21 +48,29 @@ impl Environment {
             let current_scope = &self.scopes[i];
             let value = current_scope.get(key);
             if let Some(x) = value {
-                return Some(x.clone())
+                return Some(x.clone());
             }
         }
         None
     }
 
-    pub fn assign(&mut self, key: &str, value: Value, location: Location) -> Result<Value, LoxError> {
+    pub fn assign(
+        &mut self,
+        key: &str,
+        value: Value,
+        location: Location,
+    ) -> Result<Value, LoxError> {
         for i in (0..=self.index).rev() {
             let current_scope = &mut self.scopes[i];
             if let Entry::Occupied(mut e) = current_scope.entry(key.to_string()) {
                 e.insert(value.clone());
-                return Ok(value)
+                return Ok(value);
             }
         }
-        Err(LoxError::RuntimeError(location, format!("Undefined variable: {}", key)))
+        Err(LoxError::RuntimeError(
+            location,
+            format!("Undefined variable: {}", key),
+        ))
     }
 }
 
@@ -98,7 +111,11 @@ mod tests {
     fn test_variable_assignment() {
         let mut env = Environment::new();
         env.define("foo".to_string(), Value::Number(12.1));
-        let result = env.assign("foo", Value::Number(45.0), Location::Line("testfile.lox".to_string(), 85));
+        let result = env.assign(
+            "foo",
+            Value::Number(45.0),
+            Location::Line("testfile.lox".to_string(), 85),
+        );
         assert_eq!(result, Ok(Value::Number(45.0)));
         assert_eq!(env.get("foo"), Some(Value::Number(45.0)));
     }
@@ -108,7 +125,11 @@ mod tests {
         let mut env = Environment::new();
         env.define("foo".to_string(), Value::Number(42.0));
         env.new_child_scope();
-        let result = env.assign("foo", Value::Number(45.0), Location::Line("testfile.lox".to_string(), 85));
+        let result = env.assign(
+            "foo",
+            Value::Number(45.0),
+            Location::Line("testfile.lox".to_string(), 85),
+        );
         assert_eq!(result, Ok(Value::Number(45.0)));
         assert_eq!(env.get("foo"), Some(Value::Number(45.0)));
     }

@@ -1,6 +1,10 @@
 use std::fs;
 
-use crate::{scanner::SourceCode, parser::{Stmt, Parser}, core::errors::LoxError};
+use crate::{
+    core::errors::LoxError,
+    parser::{Parser, Stmt},
+    scanner::SourceCode,
+};
 
 pub fn load_source(filepath: &str) -> String {
     let result_contents = fs::read_to_string(filepath);

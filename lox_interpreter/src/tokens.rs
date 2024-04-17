@@ -2,8 +2,7 @@ use std::fmt;
 
 use crate::core::location::Location;
 
-#[derive(Debug, PartialEq)]
-#[derive(Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -61,34 +60,28 @@ impl fmt::Display for TokenType {
             TokenType::Star => write!(f, "*"),
             TokenType::Minus => write!(f, "-"),
             TokenType::Identifier(name) => write!(f, "{}", name),
-            _ => write!(f, "{:?}", self)
+            _ => write!(f, "{:?}", self),
         }
-        
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub location: Location
+    pub location: Location,
 }
 
 impl Token {
-    pub fn new(
-        token_type: TokenType,
-        location: Location
-    ) -> Self {
+    pub fn new(token_type: TokenType, location: Location) -> Self {
         Token {
             token_type,
-            location
+            location,
         }
     }
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f, "{} {}", &self.token_type, &self.location
-        )
+        write!(f, "{} {}", &self.token_type, &self.location)
     }
 }

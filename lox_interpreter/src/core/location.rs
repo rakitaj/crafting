@@ -24,12 +24,15 @@ impl fmt::Display for Location {
             Location::Eof(filename) => {
                 let message = format!("Error at -> {filename} end of file.", filename = filename);
                 f.write_str(&message)
-            },
+            }
             Location::Line(filename, line) => {
-                let message = format!("Error at -> {filename}:{line}", filename = filename, line = line);
+                let message = format!(
+                    "Error at -> {filename}:{line}",
+                    filename = filename,
+                    line = line
+                );
                 f.write_str(&message)
             }
         }
-        
     }
 }

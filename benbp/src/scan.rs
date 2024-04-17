@@ -9,7 +9,7 @@ use crate::token::TokenType;
 pub struct SourceContext {
     line: i32,
     offset: usize,
-    pub had_error: bool
+    pub had_error: bool,
 }
 
 fn report_error(line: i32, col: usize, message: String) {
@@ -39,42 +39,52 @@ pub fn tokenize(program: String) -> bool {
             ';' => Token::new(TokenType::Semicolon, ctx.line, None),
             '*' => Token::new(TokenType::Star, ctx.line, None),
             // ----------- Lookaheads -----------
-            '!' => { match_lexeme_and_advance(curr, c, '=', ctx.line) }
-            '=' => { match_lexeme_and_advance(curr, c, '=', ctx.line) }
-            '<' => { match_lexeme_and_advance(curr, c, '=', ctx.line) }
-            '>' => { match_lexeme_and_advance(curr, c, '=', ctx.line) }
-            '/' => { match_comment(curr, ctx.line) }
+            '!' => match_lexeme_and_advance(curr, c, '=', ctx.line),
+            '=' => match_lexeme_and_advance(curr, c, '=', ctx.line),
+            '<' => match_lexeme_and_advance(curr, c, '=', ctx.line),
+            '>' => match_lexeme_and_advance(curr, c, '=', ctx.line),
+            '/' => match_comment(curr, ctx.line),
             // ----------- Misc -----------
-            ' ' | '\r' | '\t' => { None }
-            '\n' => { ctx.line += 1; ctx.offset = idx; None },
+            ' ' | '\r' | '\t' => None,
+            '\n' => {
+                ctx.line += 1;
+                ctx.offset = idx;
+                None
+            }
             // ----------- Literals -----------
-            '0'..='9' => { match_numeric(curr, c, ctx.line) }
-            '"' => { match_string_literal(curr, ctx) }
-            'a'..='z' | 'A'..='Z' => { match_alphanumeric(curr, c, ctx.line) }
+            '0'..='9' => match_numeric(curr, c, ctx.line),
+            '"' => match_string_literal(curr, ctx),
+            'a'..='z' | 'A'..='Z' => match_alphanumeric(curr, c, ctx.line),
             _ => {
                 ctx.had_error = true;
-                report_error(ctx.line, idx - ctx.offset, format!("Unexpected character {}", c));
+                report_error(
+                    ctx.line,
+                    idx - ctx.offset,
+                    format!("Unexpected character {}", c),
+                );
                 None
             }
         };
-        match token {
-            Some(token) => { tokens.push(token) }
-            _ => {}
-        };
+        if let Some(token) = token { tokens.push(token) }
     }
 
-    if let Some(eof) = Token::new_as_type(TokenType::EOF, "".to_string(), ctx.line, None) {
+    if let Some(eof) = Token::new_as_type(TokenType::Eof, "".to_string(), ctx.line, None) {
         tokens.push(eof);
     }
 
     for t in tokens {
         println!("{:?}", t);
-    };
+    }
 
     ctx.had_error
 }
 
-fn match_lexeme_and_advance(iter: &mut Peekable<CharIndices>, first: char, second: char, line: i32) -> Option<Token> {
+fn match_lexeme_and_advance(
+    iter: &mut Peekable<CharIndices>,
+    first: char,
+    second: char,
+    line: i32,
+) -> Option<Token> {
     match iter.peek() {
         Some((_, c)) if *c == second => {
             iter.next();
@@ -93,12 +103,15 @@ fn match_comment(iter: &mut Peekable<CharIndices>, line: i32) -> Option<Token> {
             while let Some((_, next_c)) = iter.peek() {
                 match next_c {
                     '\n' => break,
-                    _ => { iter.next(); continue; }
+                    _ => {
+                        iter.next();
+                        continue;
+                    }
                 }
             }
             None
         }
-        _ => Token::new(TokenType::Slash, line, None)
+        _ => Token::new(TokenType::Slash, line, None),
     }
 }
 
@@ -109,7 +122,12 @@ fn match_numeric(iter: &mut Peekable<CharIndices>, first: char, line: i32) -> Op
         .collect();
     let lexeme = format!("{}{}", first, rest);
     let number: f64 = lexeme.parse().unwrap();
-    Token::new_as_type(TokenType::Number, lexeme.clone(), line, Some(Literal::NumberLiteral(number)))
+    Token::new_as_type(
+        TokenType::Number,
+        lexeme.clone(),
+        line,
+        Some(Literal::Number(number)),
+    )
 }
 
 fn match_alphanumeric(iter: &mut Peekable<CharIndices>, first: char, line: i32) -> Option<Token> {
@@ -118,10 +136,17 @@ fn match_alphanumeric(iter: &mut Peekable<CharIndices>, first: char, line: i32) 
         .map(|(_, s)| s)
         .collect();
     let lexeme = format!("{}{}", first, rest);
-    Token::new_as_keyword(lexeme.clone(), line, Some(Literal::IdentifierLiteral(lexeme)))
+    Token::new_as_keyword(
+        lexeme.clone(),
+        line,
+        Some(Literal::Identifier(lexeme)),
+    )
 }
 
-fn match_string_literal(iter: &mut Peekable<CharIndices>, ctx: &mut SourceContext) -> Option<Token> {
+fn match_string_literal(
+    iter: &mut Peekable<CharIndices>,
+    ctx: &mut SourceContext,
+) -> Option<Token> {
     let literal: String = iter
         .take_while_exclusive(|(_, s)| *s != '"' && *s != '\n')
         .map(|(_, s)| s)
@@ -131,15 +156,19 @@ fn match_string_literal(iter: &mut Peekable<CharIndices>, ctx: &mut SourceContex
             (_, '\n') => {
                 ctx.line += 1;
                 ctx.had_error = true;
-                report_error(ctx.line, next.0 - ctx.offset, format!("Unterminated string"));
+                report_error(
+                    ctx.line,
+                    next.0 - ctx.offset,
+                    "Unterminated string".to_string(),
+                );
                 None
             }
             _ => Token::new_as_type(
-                     TokenType::StringLiteral,
-                     format!("\"{}\"", literal),
-                     ctx.line,
-                     Some(Literal::StringLiteral(literal))
-                 )
+                TokenType::StringLiteral,
+                format!("\"{}\"", literal),
+                ctx.line,
+                Some(Literal::String(literal)),
+            ),
         }
     } else {
         None

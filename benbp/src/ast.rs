@@ -5,7 +5,7 @@ pub enum Expr {
     Binary(Box<Expr>, token::Token, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(token::Literal),
-    Unary(token::Token, Box<Expr>)
+    Unary(token::Token, Box<Expr>),
 }
 
 macro_rules! parenthesize {

@@ -12,7 +12,7 @@ impl Value {
     pub fn is_truthy(&self) -> bool {
         match self {
             Value::Boolean(false) | Value::Nil => false,
-            _ => true
+            _ => true,
         }
     }
 }
@@ -23,14 +23,13 @@ impl fmt::Display for Value {
             Value::Nil => write!(f, "nil"),
             Value::Boolean(x) => match x {
                 true => write!(f, "true"),
-                false => write!(f, "false")
+                false => write!(f, "false"),
             },
             Value::String(x) => write!(f, "{}", x),
-            Value::Number(x) => write!(f, "{}", x)
+            Value::Number(x) => write!(f, "{}", x),
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
