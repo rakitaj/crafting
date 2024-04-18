@@ -75,10 +75,7 @@ impl Interpreter {
                 } else {
                     Err(LoxError::RuntimeError(
                         identifier_token.location.clone(),
-                        format!(
-                            "Expected identifier token for var name. {}",
-                            identifier_token
-                        ),
+                        format!("Expected identifier token for var name. {}", identifier_token),
                     ))
                 }
             }
@@ -174,34 +171,31 @@ impl Interpreter {
                 match (&left, &right, &operator.token_type) {
                     (left, right, TokenType::EqualEqual) => Ok(Value::Boolean(left == right)),
                     (left, right, TokenType::BangEqual) => Ok(Value::Boolean(!(left == right))),
-                    (Value::Number(left_num), Value::Number(right_num), token_type) => {
-                        match token_type {
-                            TokenType::Minus => Ok(Value::Number(left_num - right_num)),
-                            TokenType::Slash => Ok(Value::Number(left_num / right_num)),
-                            TokenType::Star => Ok(Value::Number(left_num * right_num)),
-                            TokenType::Plus => Ok(Value::Number(left_num + right_num)),
-                            TokenType::Greater => Ok(Value::Boolean(left_num > right_num)),
-                            TokenType::GreaterEqual => Ok(Value::Boolean(left_num >= right_num)),
-                            TokenType::Less => Ok(Value::Boolean(left_num < right_num)),
-                            TokenType::LessEqual => Ok(Value::Boolean(left_num <= right_num)),
-                            _ => Err(LoxError::RuntimeError(
-                                operator.location.clone(),
-                                "Matching number. Should be unreachable".to_string(),
-                            )),
+                    (Value::Number(left_num), Value::Number(right_num), token_type) => match token_type {
+                        TokenType::Minus => Ok(Value::Number(left_num - right_num)),
+                        TokenType::Slash => Ok(Value::Number(left_num / right_num)),
+                        TokenType::Star => Ok(Value::Number(left_num * right_num)),
+                        TokenType::Plus => Ok(Value::Number(left_num + right_num)),
+                        TokenType::Greater => Ok(Value::Boolean(left_num > right_num)),
+                        TokenType::GreaterEqual => Ok(Value::Boolean(left_num >= right_num)),
+                        TokenType::Less => Ok(Value::Boolean(left_num < right_num)),
+                        TokenType::LessEqual => Ok(Value::Boolean(left_num <= right_num)),
+                        _ => Err(LoxError::RuntimeError(
+                            operator.location.clone(),
+                            "Matching number. Should be unreachable".to_string(),
+                        )),
+                    },
+                    (Value::String(left_string), Value::String(right_string), token_type) => match token_type
+                    {
+                        TokenType::Plus => {
+                            let concat_string = format!("{}{}", left_string, right_string);
+                            Ok(Value::String(concat_string))
                         }
-                    }
-                    (Value::String(left_string), Value::String(right_string), token_type) => {
-                        match token_type {
-                            TokenType::Plus => {
-                                let concat_string = format!("{}{}", left_string, right_string);
-                                Ok(Value::String(concat_string))
-                            }
-                            _ => Err(LoxError::RuntimeError(
-                                operator.location.clone(),
-                                "Matching string. Should be unreachable".to_string(),
-                            )),
-                        }
-                    }
+                        _ => Err(LoxError::RuntimeError(
+                            operator.location.clone(),
+                            "Matching string. Should be unreachable".to_string(),
+                        )),
+                    },
                     _ => {
                         let msg = format!(
                             "Expected two numbers and got left: {:?} -- right: {:?}",
@@ -225,15 +219,13 @@ impl Interpreter {
                 }
             }
             Expr::Variable(token) => match &token.token_type {
-                TokenType::Identifier(variable_name) => {
-                    match state.environment.get(variable_name) {
-                        Some(val) => Ok(val),
-                        None => Err(LoxError::RuntimeError(
-                            token.location.clone(),
-                            format!("Undefined variable: {}", variable_name),
-                        )),
-                    }
-                }
+                TokenType::Identifier(variable_name) => match state.environment.get(variable_name) {
+                    Some(val) => Ok(val),
+                    None => Err(LoxError::RuntimeError(
+                        token.location.clone(),
+                        format!("Undefined variable: {}", variable_name),
+                    )),
+                },
                 _ => Err(LoxError::RuntimeError(
                     token.location.clone(),
                     format!("Expected a variable expression. Got {}", token),
@@ -254,9 +246,7 @@ impl Interpreter {
                     )),
                 }
             }
-            _ => Err(LoxError::Critical(
-                "Happening in the interpreter.".to_string(),
-            )),
+            _ => Err(LoxError::Critical("Happening in the interpreter.".to_string())),
         }
     }
 }

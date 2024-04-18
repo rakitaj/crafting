@@ -73,10 +73,7 @@ pub struct Token {
 
 impl Token {
     pub fn new(token_type: TokenType, location: Location) -> Self {
-        Token {
-            token_type,
-            location,
-        }
+        Token { token_type, location }
     }
 }
 

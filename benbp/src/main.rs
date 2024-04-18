@@ -18,8 +18,7 @@ fn main() {
         return;
     }
 
-    let program =
-        fs::read_to_string(filename).unwrap_or_else(|_| panic!("Error reading file {}", filename));
+    let program = fs::read_to_string(filename).unwrap_or_else(|_| panic!("Error reading file {}", filename));
 
     if scan::tokenize(program) {
         std::process::exit(65);
@@ -43,9 +42,7 @@ fn test_ast_printer() {
             line: 0,
             literal: Some(Number(1.0)),
         },
-        Box::new(ast::Expr::Grouping(Box::new(ast::Expr::Literal(Number(
-            45.67,
-        ))))),
+        Box::new(ast::Expr::Grouping(Box::new(ast::Expr::Literal(Number(45.67))))),
     );
     println!("{}", ast::format_ast(expression));
 }

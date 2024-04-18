@@ -57,11 +57,7 @@ pub fn tokenize(program: String) -> bool {
             'a'..='z' | 'A'..='Z' => match_alphanumeric(curr, c, ctx.line),
             _ => {
                 ctx.had_error = true;
-                report_error(
-                    ctx.line,
-                    idx - ctx.offset,
-                    format!("Unexpected character {}", c),
-                );
+                report_error(ctx.line, idx - ctx.offset, format!("Unexpected character {}", c));
                 None
             }
         };
@@ -141,10 +137,7 @@ fn match_alphanumeric(iter: &mut Peekable<CharIndices>, first: char, line: i32) 
     Token::new_as_keyword(lexeme.clone(), line, Some(Literal::Identifier(lexeme)))
 }
 
-fn match_string_literal(
-    iter: &mut Peekable<CharIndices>,
-    ctx: &mut SourceContext,
-) -> Option<Token> {
+fn match_string_literal(iter: &mut Peekable<CharIndices>, ctx: &mut SourceContext) -> Option<Token> {
     let literal: String = iter
         .take_while_exclusive(|(_, s)| *s != '"' && *s != '\n')
         .map(|(_, s)| s)
@@ -154,11 +147,7 @@ fn match_string_literal(
             (_, '\n') => {
                 ctx.line += 1;
                 ctx.had_error = true;
-                report_error(
-                    ctx.line,
-                    next.0 - ctx.offset,
-                    "Unterminated string".to_string(),
-                );
+                report_error(ctx.line, next.0 - ctx.offset, "Unterminated string".to_string());
                 None
             }
             _ => Token::new_as_type(

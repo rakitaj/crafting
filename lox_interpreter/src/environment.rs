@@ -54,12 +54,7 @@ impl Environment {
         None
     }
 
-    pub fn assign(
-        &mut self,
-        key: &str,
-        value: Value,
-        location: Location,
-    ) -> Result<Value, LoxError> {
+    pub fn assign(&mut self, key: &str, value: Value, location: Location) -> Result<Value, LoxError> {
         for i in (0..=self.index).rev() {
             let current_scope = &mut self.scopes[i];
             if let Entry::Occupied(mut e) = current_scope.entry(key.to_string()) {

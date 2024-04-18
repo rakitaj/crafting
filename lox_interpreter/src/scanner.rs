@@ -122,24 +122,10 @@ impl<'a> SourceCode<'a> {
                     }
                     _ => tokens.push(Token::new(TokenType::Slash, location)),
                 },
-                '!' => {
-                    self.peek_match_and_add('=', TokenType::BangEqual, TokenType::Bang, &mut tokens)
-                }
-                '=' => self.peek_match_and_add(
-                    '=',
-                    TokenType::EqualEqual,
-                    TokenType::Equal,
-                    &mut tokens,
-                ),
-                '<' => {
-                    self.peek_match_and_add('=', TokenType::LessEqual, TokenType::Less, &mut tokens)
-                }
-                '>' => self.peek_match_and_add(
-                    '=',
-                    TokenType::GreaterEqual,
-                    TokenType::Greater,
-                    &mut tokens,
-                ),
+                '!' => self.peek_match_and_add('=', TokenType::BangEqual, TokenType::Bang, &mut tokens),
+                '=' => self.peek_match_and_add('=', TokenType::EqualEqual, TokenType::Equal, &mut tokens),
+                '<' => self.peek_match_and_add('=', TokenType::LessEqual, TokenType::Less, &mut tokens),
+                '>' => self.peek_match_and_add('=', TokenType::GreaterEqual, TokenType::Greater, &mut tokens),
                 '0'..='9' => {
                     let (start, end) = self.take_while_inclusive(is_valid_for_number, (i, c));
                     let number = self.source[start..end].parse::<f32>().unwrap();
@@ -268,8 +254,7 @@ mod tests {
 
     #[test]
     fn test_hello_world_line() {
-        let mut source =
-            SourceCode::new("var string = \"Hello world!\";", "unittest.lox".to_string());
+        let mut source = SourceCode::new("var string = \"Hello world!\";", "unittest.lox".to_string());
         let tokens = source.scan_tokens();
         assert_eq!(
             tokens,
@@ -338,10 +323,7 @@ mod tests {
             tokens,
             vec![
                 Token::new(TokenType::Fun, loc(1)),
-                Token::new(
-                    TokenType::Identifier("underscores_are_valid".to_string()),
-                    loc(1)
-                ),
+                Token::new(TokenType::Identifier("underscores_are_valid".to_string()), loc(1)),
                 Token::new(TokenType::LeftParen, loc(1)),
                 Token::new(TokenType::RightParen, loc(1)),
                 Token::new(TokenType::LeftBrace, loc(1)),

@@ -28,11 +28,7 @@ impl fmt::Display for LoxError {
             LoxError::Syscall(location, msg) => {
                 write!(f, "SysCall Error\n{}\nLocation @ {}", msg, location)
             }
-            LoxError::Critical(msg) => write!(
-                f,
-                "\nCritical Error\n{}\nNo location can be determined.",
-                msg
-            ),
+            LoxError::Critical(msg) => write!(f, "\nCritical Error\n{}\nNo location can be determined.", msg),
         }
     }
 }

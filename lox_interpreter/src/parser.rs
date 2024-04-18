@@ -127,18 +127,15 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
-        let name = self
-            .consume_identifier("Trying to consume an identifier as part of a var declaration.")?;
+        let name =
+            self.consume_identifier("Trying to consume an identifier as part of a var declaration.")?;
         let cloned_name = name.clone();
 
         let mut initializer: Option<Expr> = None;
         if self.match_token_type(&[TokenType::Equal]) {
             initializer = Some(self.expression()?);
         }
-        self.consume(
-            &TokenType::SemiColon,
-            "Expect ';' after variable declaration.",
-        )?;
+        self.consume(&TokenType::SemiColon, "Expect ';' after variable declaration.")?;
         match initializer {
             Some(x) => Ok(Stmt::Var(cloned_name, x)),
             None => {
@@ -428,9 +425,8 @@ impl Parser {
             }
         }
         let unexpected_token = self.tokens[self.current].clone();
-        let msg = format!(
-            "Tried to consume an identifier.\nUnexpected token is {unexpected_token}\n{message}"
-        );
+        let msg =
+            format!("Tried to consume an identifier.\nUnexpected token is {unexpected_token}\n{message}");
         Err(LoxError::SyntaxError(unexpected_token.location, msg))
     }
 
