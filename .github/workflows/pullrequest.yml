@@ -18,5 +18,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build @ workspaces
       run: cargo build
+    - name: Format @ workspaces
+      run: cargo fmt --check
     - name: Test @ workspaces
       run: cargo test

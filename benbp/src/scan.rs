@@ -65,7 +65,9 @@ pub fn tokenize(program: String) -> bool {
                 None
             }
         };
-        if let Some(token) = token { tokens.push(token) }
+        if let Some(token) = token {
+            tokens.push(token)
+        }
     }
 
     if let Some(eof) = Token::new_as_type(TokenType::Eof, "".to_string(), ctx.line, None) {
@@ -136,11 +138,7 @@ fn match_alphanumeric(iter: &mut Peekable<CharIndices>, first: char, line: i32) 
         .map(|(_, s)| s)
         .collect();
     let lexeme = format!("{}{}", first, rest);
-    Token::new_as_keyword(
-        lexeme.clone(),
-        line,
-        Some(Literal::Identifier(lexeme)),
-    )
+    Token::new_as_keyword(lexeme.clone(), line, Some(Literal::Identifier(lexeme)))
 }
 
 fn match_string_literal(
