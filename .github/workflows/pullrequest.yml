@@ -15,17 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build @ joraki
+    - uses: actions/checkout@v4
+    - name: Build @ workspaces
       run: cargo build
-      working-directory: "./rakitaj/lox_interpreter"
-    - name: Test @ joraki
+    - name: Format @ workspaces
+      run: cargo fmt --check
+    - name: Test @ workspaces
       run: cargo test
-      working-directory: "./rakitaj/lox_interpreter"
-    - name: Build @ benbp
-      run: cargo build
-      working-directory: "./benbp/rust/interpreter"
-    - name: Test @ benbp
-      run: cargo test
-      working-directory: "./benbp/rust/interpreter"
-
